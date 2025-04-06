@@ -12,6 +12,9 @@ This repo deals with building a assistant for cargo management system for intern
 6. Logging
 
 
+![Screenshot (52)](https://github.com/user-attachments/assets/cc6b35aa-a86a-43fc-a6f5-8ff6e9ae9369)
+
+
 # Getting started
 
 To set up and run the Space Station Cargo Management System API locally, follow these steps: 
