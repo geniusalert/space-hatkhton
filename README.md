@@ -21,7 +21,7 @@ To set up and run the Space Station Cargo Management System API locally, follow 
 
 
 ```bash
-git clone https://github.com/geniusalert/space-hatkhton.git
+git clone geniusalert/space-hatkhton
 ```
     
 2. Build the Docker Container:
@@ -163,4 +163,114 @@ Response:
   ]
 }
 ```    
-4. 
+4. Waste Return Plan
+Endpoint: POST /api/waste/return-plan
+
+Description: Plans moving waste items to an undocking container, respecting a weight limit.
+
+Request:
+
+Query Parameters: undockingContainerId (string), undockingDate (string, ISO format), maxWeight (float) Example: http://localhost:8000/api/waste/return-plan?undockingContainerId=container-2&undockingDate=2025-04-07T00:00:00Z&maxWeight=10
+Response:
+```bash
+{
+  "success": true,
+  "wasteItems": [
+    {
+      "itemId": "item-1",
+      "name": "Example Item",
+      "reason": "Expired",
+      "containerId": "container-1"
+    }
+  ]
+}
+```    
+5. Time Simulation API
+Endpoint: POST /api/simulate/day
+
+Description: Simulates time progression by a specified number of days, updating usage limits.
+
+Request:
+```bash
+{
+  "days": 5
+}
+```    
+6. Import/Export APIs
+Import Items
+Endpoint: POST /api/import/items
+
+Description: Imports items from a CSV file.
+
+Request:
+
+Form Data: file (CSV file with headers matching Item schema)
+Response:
+```bash
+{
+  "success": true,
+  "itemsImported": 1,
+  "errors": []
+}
+```
+7. Import Containers
+Endpoint: POST /api/import/containers
+
+Description: Imports containers from a CSV file.
+
+Request:
+
+Form Data: file (CSV file with headers matching Container schema)
+Response:
+```bash
+{
+  "success": true,
+  "containersImported": 1,
+  "errors": []
+}
+```
+8. Export Arrangement
+Endpoint: GET /api/export/arrangement
+
+Description: Exports the current item arrangement as a CSV file.
+
+Request: No body required.
+
+Response: A downloadable CSV file with content like:
+
+Item ID,Container ID,Start Coordinates,End Coordinates
+item-1,container-1,(0,0,0),(10,10,10)
+
+8. Logging API
+Endpoint: GET /api/logs
+
+Description: Retrieves logs with optional filters.
+
+Request:
+
+Query Parameters (all optional): startDate, endDate, itemId, userId, actionType Example: http://localhost:8000/api/logs?startDate=2025-04-06T00:00:00Z&actionType=retrieval
+Response:
+```bash
+{
+  "success": true,
+  "logs": [
+    {
+      "timestamp": "2025-04-06T12:00:00Z",
+      "userId": "user-1",
+      "actionType": "retrieval",
+      "itemId": "item-1",
+      "details": "{\"action\": \"retrieval\", \"userId\": \"user-1\", \"timestamp\": \"2025-04-06T12:00:00Z\", \"itemId\": \"item-1\"}"
+    }
+  ]
+}
+```
+Required Features
+The solution implements all required APIs as specified in the hackathon problem statement:
+
+✅ Placement API: Enhanced from the sample with database persistence.
+✅ Search API: Finds items and provides retrieval steps.
+✅ Retrieve API: Updates usage limits and logs actions.
+✅ Waste Management APIs: Identifies and plans waste return.
+✅ Time Simulation API: Simulates time progression.
+✅ Import/Export APIs: Handles CSV-based data import/export.
+✅ Logging API: Retrieves action logs with filtering.
