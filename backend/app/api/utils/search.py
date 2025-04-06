@@ -1,173 +1,142 @@
-# backend/app/api/search.py
+# backend/app/api/utils/search.py
+import logging
+from typing import List, Dict, Optional
+from datetime import datetime, timezone
+from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-from datetime import datetime, date
+# Assuming schemas and retrieval_algorithm are available
+# from app.schemas import PlacedItem, ItemDefinition
+from .retrieval_algorithm import calculate_retrieval_steps
 
-# Adjust imports based on your project structure
-from app import crud, schemas
-from app.database import SessionLocal
-from app.api.utils.retrieval_algorithm import calculate_retrieval_steps, get_blocking_items
+logger = logging.getLogger(__name__)
 
-router = APIRouter()
-
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-def calculate_days_to_expiry(expiry_date_str: Optional[str]) -> float:
-    """Calculates days until expiry. Returns infinity if no date or invalid."""
-    if not expiry_date_str:
-        return float('inf')
-    try:
-        # Assuming expiry_date_str is in 'YYYY-MM-DD' format
-        expiry_date = date.fromisoformat(expiry_date_str)
-        today = date.today()
-        delta = expiry_date - today
-        return float(delta.days)
-    except (ValueError, TypeError):
-        # Handle invalid date format or None
-        return float('inf')
-
-def calculate_search_score(retrieval_steps: int, days_to_expiry: float) -> float:
+def calculate_search_score(
+    item: 'PlacedItem',
+    item_definition: 'ItemDefinition',
+    retrieval_steps: int
+) -> float:
     """
-    Calculates a score for prioritizing retrieval. Lower is better.
-    Prioritizes fewer steps, then closer expiry date.
+    Calculates a search score for an item. Lower is better (easier/faster to get).
+    Score considers retrieval steps, item priority, and expiry proximity.
     """
-    # Main priority: fewer steps
-    score = float(retrieval_steps)
+    score = 0.0
 
-    # Secondary priority: Closer expiry (fewer days left)
-    # Add a small component for days_to_expiry.
-    # Ensure items expiring sooner get a slightly lower score.
-    # If days_to_expiry is large (far future or no expiry), it adds less penalty.
-    # If days_to_expiry is small (or negative -> past expiry), it adds more penalty (or slight bonus).
-    # We clamp positive days to avoid excessively penalizing far-future items.
-    # A simple approach: add a fraction of days, capped.
-    expiry_penalty = 0.0
-    if days_to_expiry != float('inf'):
-        # Give a slight advantage to items expiring sooner (lower days_to_expiry)
-        # Normalize or scale this value based on typical expiry ranges if needed
-        expiry_penalty = max(0, days_to_expiry) / 100.0 # Example scaling: divide by 100
+    # 1. Retrieval Steps (Primary factor)
+    # Higher steps means harder to get -> higher score penalty
+    score += retrieval_steps * 10.0 # Weight retrieval steps heavily
 
-    score += expiry_penalty
+    # 2. Item Priority (Secondary factor)
+    # Lower priority number means HIGHER priority (e.g., 1 is highest)
+    # Penalize lower priority items (higher priority number)
+    priority = item_definition.priority if item_definition else 5 # Default priority if no definition
+    score += priority * 5.0 # Adjust weight as needed
 
-    # Consider priority as well? (Example - uncomment and adjust if needed)
-    # lower priority number means higher actual priority
-    # score += (item_priority / 10.0) # Add small penalty for lower priority items
+    # 3. Expiry Proximity (Tertiary factor)
+    # Penalize items expiring very soon if we DON'T want them now
+    # Or reward them if the search implies urgency? Let's penalize for now.
+    if item_definition and item_definition.expiryDate:
+        try:
+            # Ensure expiryDate is offset-aware for comparison
+            expiry_dt = item_definition.expiryDate
+            if expiry_dt.tzinfo is None:
+                 # Assume UTC if timezone info is missing (adjust if needed)
+                 expiry_dt = expiry_dt.replace(tzinfo=timezone.utc)
 
+            now_dt = datetime.now(timezone.utc)
+            time_to_expiry = expiry_dt - now_dt
+            days_to_expiry = time_to_expiry.total_seconds() / (60 * 60 * 24)
+
+            if days_to_expiry < 0:
+                score += 1000.0 # Heavily penalize already expired
+            elif days_to_expiry < 7:
+                score += (7 - days_to_expiry) * 2.0 # Minor penalty for expiring soon
+        except Exception as e:
+            logger.warning(f"Could not parse expiry date for scoring item {item.id}: {e}")
+
+    # logger.debug(f"Item {item.id}: Steps={retrieval_steps}, Prio={priority}, Score={score}")
     return score
 
-
-@router.get("/search", response_model=schemas.SearchResponse) # Assuming a SearchResponse schema exists
-async def search_item(
-    itemName: Optional[str] = Query(None, description="Name of the item to search for"),
-    itemId: Optional[str] = Query(None, description="Exact ID of the item to search for"),
-    userId: str = Query(..., description="ID of the user performing the search (for logging)"),
-    db: Session = Depends(get_db)
-):
+def search_items(
+    all_placed_items: List['PlacedItem'], # Flat list of all placed items
+    all_definitions: Dict[int, 'ItemDefinition'], # Map definition_id -> definition
+    items_by_container: Dict[str, List['PlacedItem']], # Map container_id -> items for retrieval calc
+    all_placed_items_map: Dict[int, 'PlacedItem'], # Map item_id -> item for retrieval calc
+    query: Optional[str] = None,
+    min_priority: Optional[int] = None,
+    max_priority: Optional[int] = None,
+    container_id: Optional[int] = None,
+    expires_before: Optional[datetime] = None,
+    expires_after: Optional[datetime] = None,
+    sort_by_score: bool = True
+) -> List[Dict]:
     """
-    Searches for an item by ID or Name.
-    - If ID is provided, returns that specific item's location and retrieval info.
-    - If Name is provided, finds all items with that name and returns the one
-      that is optimal to retrieve (fewest steps, closest expiry).
+    Searches for items based on criteria and calculates retrieval steps and score.
     """
-    if not itemId and not itemName:
-        raise HTTPException(status_code=400, detail="Please provide either itemId or itemName.")
-    if itemId and itemName:
-        raise HTTPException(status_code=400, detail="Provide either itemId or itemName, not both.")
+    results = []
+    # Ensure timezone awareness for comparisons if provided
+    if expires_before and expires_before.tzinfo is None:
+        expires_before = expires_before.replace(tzinfo=timezone.utc)
+    if expires_after and expires_after.tzinfo is None:
+        expires_after = expires_after.replace(tzinfo=timezone.utc)
 
-    search_results = []
-    best_item_details = None
-    min_score = float('inf')
+    # *** Optimization: If filtering significantly reduces the item list,
+    # apply filters *before* calculating retrieval steps. ***
+    # However, calculating steps requires the context of *all* items in the container.
 
-    # Fetch all placed items once for efficient lookup if searching by name
-    all_placed_items_db = crud.get_all_placed_items(db) # Ensure this CRUD function exists
-    all_placed_items_map: Dict[str, List[schemas.PlacedItem]] = {}
-    for item in all_placed_items_db:
-        if item.containerId not in all_placed_items_map:
-            all_placed_items_map[item.containerId] = []
-        # Convert DB model to Pydantic schema if necessary, assuming crud returns Pydantic models
-        all_placed_items_map[item.containerId].append(schemas.PlacedItem.model_validate(item))
+    logger.info(f"Starting search with {len(all_placed_items)} items. Query: '{query}', Container: {container_id}, Prio: {min_priority}-{max_priority}")
 
+    for item in all_placed_items:
+        # Get item definition
+        definition = all_definitions.get(item.item_definition_id)
+        if not definition:
+            logger.warning(f"Item definition {item.item_definition_id} not found for placed item {item.id}")
+            continue # Skip items without definitions if necessary for filtering
 
-    if itemId:
-        # --- Search by Specific ID ---
-        target_item_db = crud.get_placed_item_by_id(db, item_id=itemId) # Ensure this CRUD exists
-        if not target_item_db:
-            raise HTTPException(status_code=404, detail=f"Item with ID '{itemId}' not found.")
+        # --- Apply Filters ---
+        if query and query.lower() not in definition.name.lower():
+            continue
+        if container_id is not None and item.container_id != container_id:
+            continue
+        if min_priority is not None and definition.priority < min_priority:
+            continue
+        if max_priority is not None and definition.priority > max_priority:
+            continue
 
-        # Convert to Pydantic schema
-        target_item = schemas.PlacedItem.model_validate(target_item_db)
+        # Date Filtering (handle timezone)
+        item_expiry_dt = definition.expiryDate
+        if item_expiry_dt and item_expiry_dt.tzinfo is None:
+             item_expiry_dt = item_expiry_dt.replace(tzinfo=timezone.utc) # Assume UTC
 
-        # Get items in the same container
-        items_in_container = all_placed_items_map.get(target_item.containerId, [])
+        if expires_before and (not item_expiry_dt or item_expiry_dt >= expires_before):
+            continue
+        if expires_after and (not item_expiry_dt or item_expiry_dt <= expires_after):
+             continue
 
-        # Calculate retrieval steps
-        blocking_items_info = get_blocking_items(target_item, items_in_container)
-        retrieval_steps = len(blocking_items_info)
-        retrieval_instructions = [{"move": item.itemId, "from": item.containerId} for item in blocking_items_info]
+        # --- Calculate Steps and Score ---
+        logger.debug(f"Calculating steps for filtered item {item.id}")
+        # This is the most expensive part
+        retrieval_steps = calculate_retrieval_steps(item.id, all_placed_items_map, items_by_container)
 
-        # Log the search action (implement crud.create_log if needed)
-        # crud.create_log(db, schemas.LogCreate(userId=userId, action=f"Searched by ID: {itemId}", details=f"Found in {target_item.containerId}. Steps: {retrieval_steps}"))
+        score = calculate_search_score(item, definition, retrieval_steps)
 
-        search_results.append(schemas.SearchResultItem( # Assuming this schema exists
-             item=target_item,
-             retrieval_steps=retrieval_steps,
-             blocking_items=[b.itemId for b in blocking_items_info],
-             retrieval_instructions=retrieval_instructions
-         ))
-        best_item_details = search_results[0] # Only one result when searching by ID
+        results.append({
+            "placed_item_id": item.id,
+            "item_name": definition.name,
+            "item_definition_id": item.item_definition_id,
+            "container_id": item.container_id,
+            "pos_x": item.pos_x,
+            "pos_y": item.pos_y,
+            "pos_z": item.pos_z,
+            "priority": definition.priority,
+            "expiry_date": definition.expiryDate,
+            "retrieval_steps": retrieval_steps,
+            "search_score": score,
+            # Include other relevant fields from PlacedItem or ItemDefinition
+        })
 
+    # --- Sort Results ---
+    if sort_by_score:
+        results.sort(key=lambda r: r['search_score'])
 
-    elif itemName:
-        # --- Search by Name ---
-        found_items_db = crud.get_placed_items_by_name(db, item_name=itemName) # Ensure this CRUD exists
-        if not found_items_db:
-             raise HTTPException(status_code=404, detail=f"No items found with name '{itemName}'.")
-
-        # Log the search action
-        # crud.create_log(db, schemas.LogCreate(userId=userId, action=f"Searched by Name: {itemName}", details=f"Found {len(found_items_db)} potential matches."))
-
-        for item_db in found_items_db:
-            item = schemas.PlacedItem.model_validate(item_db) # Convert to Pydantic
-
-            # Get items in the same container
-            items_in_container = all_placed_items_map.get(item.containerId, [])
-
-            # Calculate retrieval steps for this specific item instance
-            blocking_items_info = get_blocking_items(item, items_in_container)
-            retrieval_steps = len(blocking_items_info)
-
-            # Get original item details to fetch expiry date (assuming PlacedItem doesn't store it)
-            original_item_details = crud.get_item_definition(db, item_id=item.itemId) # Assumes a function to get the original item definition
-            days_to_expiry = calculate_days_to_expiry(original_item_details.expiryDate if original_item_details else None)
-
-            # Calculate score
-            score = calculate_search_score(retrieval_steps, days_to_expiry) # Add item.priority if needed
-
-            # Check if this item is better than the current best
-            if score < min_score:
-                min_score = score
-                retrieval_instructions = [{"move": b.itemId, "from": b.containerId} for b in blocking_items_info]
-                best_item_details = schemas.SearchResultItem(
-                     item=item,
-                     retrieval_steps=retrieval_steps,
-                     blocking_items=[b.itemId for b in blocking_items_info],
-                     retrieval_instructions=retrieval_instructions,
-                     score=score # Optional: include score in response for debugging/info
-                )
-                # print(f"New best: ID={item.itemId}, Steps={retrieval_steps}, ExpiryDays={days_to_expiry:.1f}, Score={score:.2f}")
-
-
-    if not best_item_details:
-         # This case should ideally not be reached if checks above are correct, but as a fallback
-         raise HTTPException(status_code=404, detail="No suitable item found matching criteria.")
-
-    # Return the single best result
-    return schemas.SearchResponse(results=[best_item_details])
+    logger.info(f"Search complete. Found {len(results)} items.")
+    return results

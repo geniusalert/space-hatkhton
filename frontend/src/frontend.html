@@ -935,6 +935,392 @@
          </div>
 
     <script>
+      
+// preferably just before the closing </body> tag,
+// or link it as an external .js file.
+
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Configuration ---
+    const API_BASE_URL = '/api'; // Adjust if your API root is different
+
+    // --- DOM Element References (Update these selectors!) ---
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const notificationsDiv = document.getElementById('notifications');
+    const itemsTableBody = document.getElementById('items-table-body');
+    const containerVisualDiv = document.getElementById('container-visual');
+    // Add references to your forms, buttons, input fields, etc.
+    // Example: const placeItemForm = document.getElementById('place-item-form');
+    // Example: const searchButton = document.getElementById('search-button');
+
+    // --- Utility Functions ---
+
+    /**
+     * Shows the loading indicator.
+     */
+    function showLoading() {
+        if (loadingIndicator) loadingIndicator.style.display = 'block';
+        // Optionally disable buttons/forms here
+    }
+
+    /**
+     * Hides the loading indicator.
+     */
+    function hideLoading() {
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
+         // Optionally re-enable buttons/forms here
+    }
+
+    /**
+     * Displays a notification message to the user.
+     * @param {string} message - The message to display.
+     * @param {'success' | 'error' | 'info'} type - Message type for styling.
+     */
+    function showNotification(message, type = 'info') {
+        if (!notificationsDiv) return;
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`; // Use CSS classes for styling
+        notification.textContent = message;
+        notificationsDiv.appendChild(notification);
+        // Auto-remove notification after a few seconds
+        setTimeout(() => notification.remove(), 5000);
+    }
+
+    /**
+     * Makes a request to the backend API.
+     * @param {string} endpoint - The API endpoint (e.g., '/items').
+     * @param {object} [options={}] - Fetch options (method, headers, body, etc.).
+     * @returns {Promise<any>} - The JSON response body or throws an error.
+     */
+    async function apiFetch(endpoint, options = {}) {
+        showLoading();
+        const url = `${API_BASE_URL}${endpoint}`;
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+        };
+        // Deep merge options, ensuring headers are combined correctly
+        const fetchOptions = {
+             ...defaultOptions,
+             ...options,
+             headers: { ...defaultOptions.headers, ...(options.headers || {}) }
+        };
+
+        if (options.body && typeof options.body !== 'string') {
+            fetchOptions.body = JSON.stringify(options.body);
+        }
+
+        try {
+            const response = await fetch(url, fetchOptions);
+
+            if (!response.ok) {
+                let errorMessage = `Error: ${response.status} ${response.statusText}`;
+                try {
+                    // Try to get more specific error detail from backend response
+                    const errorBody = await response.json();
+                    errorMessage = errorBody.detail || errorMessage; // FastAPI often uses 'detail'
+                } catch (e) {
+                    // Ignore if response is not JSON or empty
+                }
+                throw new Error(errorMessage);
+            }
+
+            // Handle responses with no content (e.g., DELETE 204)
+            if (response.status === 204) {
+                 return null; // Or return an empty object/true as needed
+            }
+
+            // Assume response is JSON otherwise
+            return await response.json();
+        } catch (error) {
+            console.error(`API Fetch Error (${endpoint}):`, error);
+            showNotification(`API Error: ${error.message}`, 'error');
+            throw error; // Re-throw to allow specific handling in calling function
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // --- Core Data Fetching and State Management ---
+
+    let currentPlacedItems = []; // Store fetched items locally
+    let currentContainers = []; // Store fetched containers
+    let currentDefinitions = {}; // Store fetched definitions (object for easy lookup)
+
+    /**
+     * Fetches initial data needed for the UI (containers, items, definitions).
+     */
+    async function fetchInitialData() {
+        try {
+            // Fetch in parallel
+            const [containers, items, definitions] = await Promise.all([
+                apiFetch('/containers'), // Assuming '/api/containers' endpoint exists
+                apiFetch('/items/placed'), // Assuming '/api/items/placed' endpoint exists
+                apiFetch('/items/definitions') // Assuming '/api/items/definitions' endpoint exists
+            ]);
+
+            currentContainers = containers || [];
+            currentPlacedItems = items || [];
+            // Convert definitions array to object map for faster lookup by ID
+            currentDefinitions = (definitions || []).reduce((map, def) => {
+                map[def.id] = def;
+                return map;
+            }, {});
+
+
+            console.log('Initial data fetched:', { containers, items, definitions });
+
+            // Update UI elements that depend on this data
+            updateItemsTable(currentPlacedItems);
+            updateVisualization(currentPlacedItems, currentContainers);
+            // Populate dropdowns, etc.
+            populateContainerDropdowns(currentContainers);
+            populateItemDefinitionDropdowns(definitions);
+
+        } catch (error) {
+            showNotification("Failed to load initial application data.", 'error');
+        }
+    }
+
+    // --- UI Update Functions ---
+
+    /**
+     * Updates the main table displaying placed items.
+     * @param {Array} items - Array of placed item objects.
+     */
+    function updateItemsTable(items) {
+        if (!itemsTableBody) return;
+        itemsTableBody.innerHTML = ''; // Clear existing rows
+
+        if (!items || items.length === 0) {
+            itemsTableBody.innerHTML = '<tr><td colspan="6">No items placed.</td></tr>'; // Adjust colspan
+            return;
+        }
+
+        items.forEach(item => {
+            const definition = currentDefinitions[item.item_definition_id] || { name: 'Unknown', priority: '-' };
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.id}</td>
+                <td>${definition.name}</td>
+                <td>${item.container_id}</td>
+                <td>${definition.priority}</td>
+                <td>${item.pos_x.toFixed(2)}, ${item.pos_y.toFixed(2)}, ${item.pos_z.toFixed(2)}</td>
+                <td>
+                    <button class="btn-retrieve" data-item-id="${item.id}">Retrieve</button>
+                    </td>
+            `;
+            // Add event listener for the retrieve button
+            row.querySelector('.btn-retrieve').addEventListener('click', () => handleRetrieveItem(item.id));
+
+            itemsTableBody.appendChild(row);
+        });
+    }
+
+    /**
+     * Updates the visualization area.
+     * **Placeholder:** Needs implementation based on your chosen visualization method.
+     * @param {Array} items - Array of placed item objects.
+     * @param {Array} containers - Array of container objects.
+     */
+    function updateVisualization(items, containers) {
+         if (!containerVisualDiv) return;
+        console.log("Updating visualization (Placeholder)...", items, containers);
+        containerVisualDiv.innerHTML = '<p>Visualization Area - Needs Implementation</p>';
+        // TODO: Add your rendering logic here (e.g., using CSS, SVG, Canvas, Three.js)
+        // - Clear previous visualization
+        // - Draw containers
+        // - Draw items within their containers at correct positions/rotations
+    }
+
+    /**
+     * Populates dropdown menus for selecting containers.
+     * @param {Array} containers - Array of container objects.
+     */
+    function populateContainerDropdowns(containers) {
+        // Example: Update a <select id="container-select"> element
+        const selectElement = document.getElementById('container-select'); // Update ID
+        if (!selectElement) return;
+        selectElement.innerHTML = '<option value="">-- Select Container --</option>';
+        containers.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id;
+            option.textContent = `Container ${c.id} (Zone: ${c.zone || 'N/A'})`;
+            selectElement.appendChild(option);
+        });
+    }
+
+     /**
+     * Populates dropdown menus for selecting item definitions.
+     * @param {Array} definitions - Array of item definition objects.
+     */
+    function populateItemDefinitionDropdowns(definitions) {
+        // Example: Update a <select id="item-definition-select"> element
+        const selectElement = document.getElementById('item-definition-select'); // Update ID
+        if (!selectElement) return;
+        selectElement.innerHTML = '<option value="">-- Select Item Type --</option>';
+        definitions.forEach(d => {
+            const option = document.createElement('option');
+            option.value = d.id;
+            option.textContent = `${d.name} (ID: ${d.id})`;
+            selectElement.appendChild(option);
+        });
+    }
+
+    // --- Action Handlers ---
+
+    /**
+     * Handles placing a new item via the API.
+     * @param {object} itemData - Data for the item to place (from a form).
+     * Example: { itemDefinitionId: 1, quantity: 1, preferredZone: 'A' }
+     */
+    async function handlePlaceItem(itemData) {
+        console.log('Placing item:', itemData);
+        try {
+            // Assuming your API expects ItemCreate schema in the body
+            const result = await apiFetch('/placement', {
+                method: 'POST',
+                body: itemData,
+            });
+            showNotification(`Item placed successfully in container ${result.container_id}!`, 'success');
+            // Refresh relevant data and UI
+            await fetchInitialData(); // Re-fetch all might be easiest
+        } catch (error) {
+            // Error already shown by apiFetch, could add more specific handling
+            console.error("Placement failed:", error);
+        }
+    }
+
+    /**
+     * Handles retrieving an item (initiating the process).
+     * @param {number} itemId - The ID of the placed item to retrieve.
+     */
+    async function handleRetrieveItem(itemId) {
+        console.log('Retrieving item:', itemId);
+        // Confirmation dialog
+        if (!confirm(`Are you sure you want to retrieve item ${itemId}? This might involve moving other items.`)) {
+            return;
+        }
+        try {
+             // API might return details of blocking items or just success/failure
+             // Using DELETE assuming it removes the item after calculating steps/logging
+            const result = await apiFetch(`/retrieve/${itemId}`, {
+                method: 'DELETE', // Or 'POST' if it just calculates and returns steps/plan
+            });
+
+            // Adjust message based on actual API response structure
+            if (result && result.moved_items) {
+                 showNotification(`Item ${itemId} retrieved. Moved ${result.moved_items.length} blocking items.`, 'success');
+            } else {
+                showNotification(`Item ${itemId} retrieved/marked for retrieval.`, 'success');
+            }
+
+            // Refresh relevant data and UI
+            await fetchInitialData(); // Re-fetch all
+        } catch (error) {
+            console.error("Retrieval failed:", error);
+             // Error already shown by apiFetch
+        }
+    }
+
+     /**
+     * Handles searching for items based on form inputs.
+     */
+    async function handleSearchItems() {
+        // 1. Get search parameters from your search form inputs
+        const queryParams = new URLSearchParams();
+        // Example:
+        // const nameQuery = document.getElementById('search-name').value;
+        // if (nameQuery) queryParams.append('query', nameQuery);
+        // const minPrio = document.getElementById('search-min-prio').value;
+        // if (minPrio) queryParams.append('min_priority', minPrio);
+        // ... add other params (container_id, expires_before, etc.)
+
+        console.log('Searching items with params:', queryParams.toString());
+        try {
+            const searchResults = await apiFetch(`/search?${queryParams.toString()}`);
+            console.log('Search results:', searchResults);
+            // Update a specific search results table or highlight items
+            // updateSearchResultsTable(searchResults); // You'd need to create this function
+            updateItemsTable(searchResults); // Or just update the main table to show only results
+             showNotification(`Search returned ${searchResults.length} items.`, 'info');
+        } catch (error) {
+            console.error("Search failed:", error);
+        }
+    }
+
+    /**
+     * Fetches and displays waste items.
+     */
+    async function handleShowWaste() {
+        console.log('Fetching waste items...');
+        try {
+            const wasteData = await apiFetch('/waste'); // Assuming GET /api/waste returns waste items
+            console.log('Waste data:', wasteData);
+             // Update a dedicated waste table or modal
+             // displayWasteModal(wasteData.expired_items, wasteData.used_up_items); // Create this function
+            showNotification(`Found ${wasteData.expired_items.length} expired and ${wasteData.used_up_items.length} used up items.`, 'info');
+        } catch (error) {
+            console.error("Failed to fetch waste:", error);
+        }
+    }
+
+    /**
+     * Fetches and displays log entries.
+     */
+     async function handleShowLogs() {
+        console.log('Fetching logs...');
+        try {
+            // Add query params for pagination if needed: ?skip=0&limit=50
+            const logs = await apiFetch('/logs');
+            console.log('Log data:', logs);
+            // Update a log display area or table
+            // displayLogs(logs); // Create this function
+             showNotification(`Workspaceed ${logs.length} log entries.`, 'info');
+        } catch (error) {
+            console.error("Failed to fetch logs:", error);
+        }
+    }
+
+
+    // --- Event Listeners (Connect to your HTML buttons/forms) ---
+
+    // Example: Listen for form submission to place an item
+    // const placeItemForm = document.getElementById('place-item-form'); // Update ID
+    // if (placeItemForm) {
+    //     placeItemForm.addEventListener('submit', async (event) => {
+    //         event.preventDefault(); // Prevent default form submission
+    //         const formData = new FormData(placeItemForm);
+    //         const itemData = {
+    //             itemDefinitionId: parseInt(formData.get('itemDefinitionId'), 10),
+    //             quantity: parseInt(formData.get('quantity'), 10) || 1, // Default quantity if needed
+    //             // Add other fields like preferredZone if your form has them
+    //             // preferredZone: formData.get('preferredZone') || null
+    //         };
+    //         // Basic validation
+    //         if (!itemData.itemDefinitionId) {
+    //             showNotification('Please select an item type.', 'error');
+    //             return;
+    //         }
+    //         await handlePlaceItem(itemData);
+    //         placeItemForm.reset(); // Clear form
+    //     });
+    // }
+
+    // Example: Listen for search button click
+    // const searchButton = document.getElementById('search-button'); // Update ID
+    // if (searchButton) {
+    //     searchButton.addEventListener('click', handleSearchItems);
+    // }
+
+    // Add listeners for Waste button, Logs button, etc.
+
+
+    // --- Initial Load ---
+    fetchInitialData();
+
+}); // End DOMContentLoaded
         // --- Wrapped entire JS in DOMContentLoaded ---
         document.addEventListener('DOMContentLoaded', () => {
 

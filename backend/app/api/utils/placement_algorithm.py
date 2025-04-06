@@ -1,258 +1,255 @@
 # backend/app/api/utils/placement_algorithm.py
+import logging
+from typing import List, Optional, Dict, Tuple
+from decimal import Decimal # Use Decimal for precision if needed, otherwise float is fine
 
-from typing import List, Optional, Tuple
-# Assuming schemas.py defines these classes (adapt imports if structure differs)
-# from app.schemas import ItemCreate, Container, PlacedItem
-# Make sure these schemas have the necessary attributes (dimensions, coordinates etc.)
+# Assuming schemas are defined elsewhere (e.g., app.schemas)
+# from app.schemas import ItemCreate, PlacedItem, Container, ItemDefinition
 
-# Placeholder schemas if not imported - replace with your actual schemas
-class ItemCreate:
-    def __init__(self, itemId: str, name: str, width: float, depth: float, height: float, mass: float, priority: int, expiryDate: str, usageLimit: int, preferredZone: Optional[str] = None):
-        self.itemId = itemId
-        self.name = name
-        self.width = width
-        self.depth = depth
-        self.height = height
-        self.mass = mass
-        self.priority = priority
-        self.expiryDate = expiryDate
-        self.usageLimit = usageLimit
-        self.preferredZone = preferredZone
-
-class Container:
-     def __init__(self, containerId: str, zone: str, width: float, depth: float, height: float):
-         self.containerId = containerId
-         self.zone = zone
-         self.width = width
-         self.depth = depth
-         self.height = height
-
-class PlacedItem:
-    def __init__(self, itemId: str, name: str, containerId: str, startW: float, startD: float, startH: float, width: float, depth: float, height: float, priority: int):
-        self.itemId = itemId
-        self.name = name
-        self.containerId = containerId
-        self.startW = startW
-        self.startD = startD
-        self.startH = startH
-        self.width = width
-        self.depth = depth
-        self.height = height
-        self.priority = priority # Added priority for potential scoring use
+logger = logging.getLogger(__name__)
 
 # --- Helper Functions ---
 
-def get_item_rotations(item: ItemCreate) -> List[Tuple[float, float, float]]:
-    """Generates all 6 possible rotations for an item's dimensions."""
-    w, d, h = item.width, item.depth, item.height
-    return [
-        (w, d, h), (w, h, d),
-        (d, w, h), (d, h, w),
-        (h, w, d), (h, d, w)
-    ]
+def get_item_dimensions(item: 'ItemCreate', rotation: int = 0) -> Tuple[float, float, float]:
+    """Gets item dimensions based on rotation (0=XYZ, 1=YXZ, 2=XZY, etc.)."""
+    # This needs to be implemented based on your ItemDefinition/ItemCreate schema
+    # Example:
+    # definition = get_item_definition(item.itemDefinitionId) # Fetch from DB or cache
+    # w, h, d = definition.width, definition.height, definition.depth
+    # Placeholder dimensions:
+    w, h, d = float(item.width), float(item.height), float(item.depth)
 
-def overlaps(
-    item1_pos: Tuple[float, float, float], item1_dims: Tuple[float, float, float],
-    item2_pos: Tuple[float, float, float], item2_dims: Tuple[float, float, float]
+    # Simple rotation logic (adjust based on actual rotation rules)
+    if rotation == 0: # XYZ (Original)
+        return w, h, d
+    elif rotation == 1: # YXZ
+        return h, w, d
+    elif rotation == 2: # XZY
+        return w, d, h
+    # Add other rotation cases as needed
+    else: # Default to original if rotation is unknown
+        return w, h, d
+
+def get_item_rotations(item: 'ItemCreate') -> List[int]:
+    """Returns a list of valid rotation indices (e.g., 0, 1, 2)."""
+    # Return allowed rotations, maybe based on item properties
+    return [0, 1, 2] # Example: Allow 3 basic rotations
+
+def check_collision(
+    pos_x: float, pos_y: float, pos_z: float,
+    dim_w: float, dim_h: float, dim_d: float,
+    other_item: 'PlacedItem'
 ) -> bool:
-    """Checks if two 3D cuboids overlap."""
-    sW1, sD1, sH1 = item1_pos
-    w1, d1, h1 = item1_dims
-    sW2, sD2, sH2 = item2_pos
-    w2, d2, h2 = item2_dims
+    """Checks if the new item collides with an existing item."""
+    # Basic Axis-Aligned Bounding Box (AABB) collision detection
+    # Assumes other_item has position (px, py, pz) and dimensions (pw, ph, pd)
+    other_x, other_y, other_z = float(other_item.pos_x), float(other_item.pos_y), float(other_item.pos_z)
+    other_w, other_h, other_d = float(other_item.width), float(other_item.height), float(other_item.depth)
 
-    # Check for non-overlap along each axis
-    x_overlap = (sW1 < sW2 + w2) and (sW1 + w1 > sW2)
-    y_overlap = (sD1 < sD2 + d2) and (sD1 + d1 > sD2) # Changed variable name for clarity
-    z_overlap = (sH1 < sH2 + h2) and (sH1 + h1 > sH2) # Changed variable name for clarity
+    collides_x = (pos_x < other_x + other_w) and (pos_x + dim_w > other_x)
+    collides_y = (pos_y < other_y + other_h) and (pos_y + dim_h > other_y)
+    collides_z = (pos_z < other_z + other_d) and (pos_z + dim_d > other_z)
 
-    return x_overlap and y_overlap and z_overlap
+    return collides_x and collides_y and collides_z
 
-def check_placement_validity(
-    placement_pos: Tuple[float, float, float],
-    item_dims: Tuple[float, float, float],
-    container: Container,
-    existing_items: List[PlacedItem]
+def is_placement_valid(
+    container: 'Container',
+    existing_items: List['PlacedItem'],
+    pos_x: float, pos_y: float, pos_z: float,
+    dim_w: float, dim_h: float, dim_d: float
 ) -> bool:
-    """Checks if placing item_dims at placement_pos is valid."""
-    sW, sD, sH = placement_pos
-    w, d, h = item_dims
+    """Checks if placing an item at (x,y,z) with dimensions (w,h,d) is valid."""
+    cont_w, cont_h, cont_d = float(container.width), float(container.height), float(container.depth)
 
-    # 1. Check container boundaries
-    if not (0 <= sW and sW + w <= container.width and
-            0 <= sD and sD + d <= container.depth and
-            0 <= sH and sH + h <= container.height):
-        # print(f"Boundary check failed: pos=({sW},{sD},{sH}), dim=({w},{d},{h}), cont=({container.width},{container.depth},{container.height})")
+    # 1. Check bounds
+    if not (0 <= pos_x and pos_x + dim_w <= cont_w and
+            0 <= pos_y and pos_y + dim_h <= cont_h and
+            0 <= pos_z and pos_z + dim_d <= cont_d):
+        # logger.debug(f"Placement invalid: Out of bounds ({pos_x},{pos_y},{pos_z}) D({dim_w},{dim_h},{dim_d}) in C({cont_w},{cont_h},{cont_d})")
         return False
 
-    # 2. Check overlap with existing items
-    for existing in existing_items:
-        existing_pos = (existing.startW, existing.startD, existing.startH)
-        existing_dims = (existing.width, existing.depth, existing.height)
-        if overlaps(placement_pos, item_dims, existing_pos, existing_dims):
-            # print(f"Overlap detected with {existing.itemId}")
+    # 2. Check collisions with existing items
+    # *** EFFICIENCY BOTTLENECK ***
+    # Iterating through all items is O(N).
+    # Replace this loop with a spatial index query (e.g., Octree) for O(log N) or better.
+    # spatial_index.query_region(bounding_box_of_new_item) -> potential colliders
+    for other_item in existing_items:
+        if check_collision(pos_x, pos_y, pos_z, dim_w, dim_h, dim_d, other_item):
+            # logger.debug(f"Placement invalid: Collision with item {other_item.item_id} at ({pos_x},{pos_y},{pos_z})")
             return False
 
-    # 3. (Optional) Check for stable placement (item base fully supported)
-    # This adds complexity - basic check assumes placement is stable if it doesn't overlap
-    # A more complex check would verify the area below the item is occupied or is the container floor.
+    # 3. Check stability (optional, basic check: is it resting on the floor or another item?)
+    # Requires more complex geometry checks - omitted for simplicity here.
+    # Could check if pos_z == 0 or if the area below the item intersects with another item.
 
     return True
 
-def generate_placement_points(container: Container, existing_items: List[PlacedItem]) -> List[Tuple[float, float, float]]:
-    """Generates potential stable points to try placing a new item."""
-    points = set([(0.0, 0.0, 0.0)]) # Start with the origin
+def get_placement_points(container: 'Container', existing_items: List['PlacedItem'], item_dims: Tuple[float, float, float]) -> List[Tuple[float, float, float]]:
+    """
+    Generates potential placement points.
+    Improvement: Instead of fixed grid, try corners of existing items or surfaces.
+    This is a simplified placeholder using a grid approach.
+    A Maximal Empty Space algorithm would be more robust here.
+    """
+    points = []
+    step = 5.0 # Granularity of placement grid - adjust as needed
 
-    # Add points based on corners of existing items
+    cont_w, cont_h, cont_d = float(container.width), float(container.height), float(container.depth)
+    item_w, item_h, item_d = item_dims
+
+    # Basic grid approach (can be inefficient)
+    z = 0.0
+    while z <= cont_d - item_d:
+        y = 0.0
+        while y <= cont_h - item_h:
+            x = 0.0
+            while x <= cont_w - item_w:
+                points.append((x, y, z))
+                x += step
+            y += step
+        z += step
+
+    # Add points based on existing item surfaces (simple version)
     for item in existing_items:
-        # Points on top of the item (potential base for next item)
-        points.add((item.startW, item.startD, item.startH + item.height))
-        # Points adjacent in width
-        points.add((item.startW + item.width, item.startD, item.startH))
-        # Points adjacent in depth
-        points.add((item.startW, item.startD + item.depth, item.startH))
+        ix, iy, iz = float(item.pos_x), float(item.pos_y), float(item.pos_z)
+        iw, ih, _ = float(item.width), float(item.height), float(item.depth) # Assuming depth alignment needed for 'on top'
+        # Point on top of existing item
+        points.append((ix, iy, iz + float(item.depth)))
+        # Points adjacent in x/y (simplified)
+        points.append((ix + iw, iy, iz))
+        points.append((ix, iy + ih, iz))
 
-        # Also consider corners relative to container boundaries (less crucial if iterating based on item corners)
-        # points.add((item.startW + item.width, item.startD, 0)) # Project to floor
-        # points.add((item.startW, item.startD + item.depth, 0)) # Project to floor
 
-    # Refine points: Remove points clearly outside container (though check_placement_validity handles this too)
-    refined_points = {
-        p for p in points if
-        0 <= p[0] < container.width and
-        0 <= p[1] < container.depth and
-        0 <= p[2] < container.height
-    }
+    # Deduplicate and return valid starting points (must be within bounds)
+    valid_points = []
+    seen = set()
+    for p in points:
+        px, py, pz = p
+        if 0 <= px < cont_w and 0 <= py < cont_h and 0 <= pz < cont_d:
+             # Check if point itself is inside another item (crude check)
+             is_inside = False
+             # *** Optimization needed here too if many items ***
+             # for other in existing_items:
+             #    if check_collision(px, py, pz, 0.1, 0.1, 0.1, other): # Check tiny cube
+             #       is_inside = True
+             #       break
+             if not is_inside and p not in seen:
+                 valid_points.append(p)
+                 seen.add(p)
 
-    # Sort points: Prioritize lower depth (D), then lower width (W), then lower height (H)
-    # This aims for placements closer to the front, bottom-left
-    sorted_points = sorted(list(refined_points), key=lambda p: (p[1], p[0], p[2]))
+    # Sort points (e.g., prioritize lower Z, then Y, then X)
+    valid_points.sort(key=lambda p: (p[2], p[1], p[0]))
+    return valid_points
 
-    return sorted_points
 
-def calculate_placement_score(
-    placement_pos: Tuple[float, float, float],
-    item: ItemCreate,
-    container: Container,
-    is_preferred_zone: bool
+def score_placement(
+    container: 'Container',
+    item: 'ItemCreate',
+    pos_x: float, pos_y: float, pos_z: float,
+    dim_d: float # Depth dimension for accessibility check
 ) -> float:
-    """Calculates a score for a valid placement (lower is better)."""
-    sW, sD, sH = placement_pos
+    """
+    Scores a potential placement. Lower score is better.
+    Improved Score: Includes distance penalty, zone penalty, and basic accessibility penalty.
+    """
     score = 0.0
+    cont_w, cont_h, cont_d = float(container.width), float(container.height), float(container.depth)
 
-    # 1. Primary factor: Depth (Accessibility) - Lower depth is much better.
-    score += sD * 100 # Weight depth heavily
+    # 1. Distance Penalty (Prefer closer to origin/access point 0,0,0)
+    distance = (pos_x**2 + pos_y**2 + pos_z**2)**0.5
+    score += distance * 0.1 # Weight distance less heavily
 
-    # 2. Secondary factor: Height - Lower is generally better.
-    score += sH * 10
+    # 2. Preferred Zone Penalty
+    if item.preferredZone and container.zone != item.preferredZone:
+        score += 100.0 # High penalty for wrong zone
 
-    # 3. Tertiary factor: Width - Less critical, but keep things packed left.
-    score += sW
+    # 3. Accessibility Penalty (Simple: distance from container front)
+    # Assumes access is from Z=0 face. Lower Z is better.
+    # More advanced: Estimate blocking items (costly here, better done at retrieval)
+    accessibility_penalty = pos_z + dim_d # Penalize based on how deep it is
+    score += accessibility_penalty * 0.5 # Weight accessibility
 
-    # 4. Penalty for not being in preferred zone
-    if not is_preferred_zone:
-        score += 500 # Significant penalty
-
-    # 5. (Optional) Adjust score based on item priority
-    # Example: Penalize placing low-priority items at very accessible spots (low depth)
-    # Or reward placing high-priority items at accessible spots.
-    # if item.priority < 5 and sD < container.depth / 3:
-    #     score += 100 # Penalty for low priority item taking prime spot
-    # elif item.priority >= 8 and sD < container.depth / 3:
-    #      score -= 50 # Bonus for high priority item accessibility
+    # 4. Stability Score (Optional, complex)
+    # score += calculate_stability(...)
 
     return score
 
-
-# --- Main Placement Logic ---
+# --- Main Placement Function ---
 
 def find_best_placement_for_item(
-    item_to_place: ItemCreate,
-    containers: List[Container],
-    all_placed_items: List[PlacedItem] # Items currently placed in ALL containers
-) -> Optional[Tuple[str, Tuple[float, float, float], Tuple[float, float, float]]]:
+    item: 'ItemCreate',
+    containers: List['Container'],
+    all_placed_items: Dict[str, List['PlacedItem']] # Dict[container_id, list_of_items]
+) -> Optional[Dict]:
     """
-    Finds the best placement (containerId, position, dimensions) for a new item.
-    Returns None if no suitable placement is found.
+    Finds the best valid placement for a single item across multiple containers.
+    Implements a Best Fit approach combined with scoring.
     """
     best_placement = None
-    min_score = float('inf')
+    lowest_score = float('inf')
 
-    # Sort containers: Prioritize item's preferred zone, then others
-    sorted_containers = sorted(
-        containers,
-        key=lambda c: 0 if c.zone == item_to_place.preferredZone else 1 if item_to_place.preferredZone else 0
-        # If no preferred zone, treat all as equal (priority 0)
-    )
+    valid_containers = [c for c in containers if not item.preferredZone or c.zone == item.preferredZone]
+    if not valid_containers:
+         valid_containers = containers # Fallback if preferred zone not available
 
-    for container in sorted_containers:
-        # Get items currently placed ONLY in this specific container
-        items_in_this_container = [
-            p_item for p_item in all_placed_items if p_item.containerId == container.containerId
-        ]
+    # Sort containers (optional, e.g., by available space heuristic if calculated)
+    # valid_containers.sort(key=lambda c: calculate_available_space(c), reverse=True)
 
-        # Generate candidate starting points for placement in this container
-        potential_points = generate_placement_points(container, items_in_this_container)
+    for container in valid_containers:
+        container_id_str = str(container.id) # Ensure key is string if dict expects strings
+        existing_items = all_placed_items.get(container_id_str, [])
+        logger.debug(f"Checking container {container.id} (Zone: {container.zone}) with {len(existing_items)} items for item {item.name}")
 
-        is_preferred = (container.zone == item_to_place.preferredZone)
+        # *** Optimization: Pre-build spatial index for existing_items here ***
+        # spatial_index = build_octree(existing_items)
 
-        # Try placing the item at each point with each rotation
-        for point in potential_points:
-            for item_dims in get_item_rotations(item_to_place):
-                # Check if this placement (point + dimension) is valid
-                is_valid = check_placement_validity(
-                    point, item_dims, container, items_in_this_container
-                )
+        for rotation in get_item_rotations(item):
+            item_w, item_h, item_d = get_item_dimensions(item, rotation)
 
-                if is_valid:
-                    # Calculate a score for this valid placement
-                    score = calculate_placement_score(point, item_to_place, container, is_preferred)
+            # Get potential starting points
+            potential_points = get_placement_points(container, existing_items, (item_w, item_h, item_d))
+            logger.debug(f"Container {container.id}, Rotation {rotation}: Found {len(potential_points)} potential points.")
 
-                    # If this placement is better than the current best, update
-                    if score < min_score:
-                        min_score = score
-                        best_placement = (container.containerId, point, item_dims)
-                        # print(f"New best placement found: score={score}, container={container.containerId}, pos={point}, dims={item_dims}")
+            for point in potential_points:
+                pos_x, pos_y, pos_z = point
 
-        # Optimization: If a good placement is found in the preferred zone,
-        # we might stop early, depending on how crucial optimality vs speed is.
-        # For a hackathon, finding *any* placement in the preferred zone might be good enough.
-        # if best_placement and is_preferred:
-        #      print(f"Placement found in preferred zone {container.zone}. Stopping search.")
-        #      break # Or continue searching all containers for the absolute best score
+                # Check if this placement is valid (bounds and collision)
+                # Pass spatial_index if using one: is_placement_valid(..., spatial_index=spatial_index)
+                if is_placement_valid(container, existing_items, pos_x, pos_y, pos_z, item_w, item_h, item_d):
+                    # Calculate score for this valid placement
+                    current_score = score_placement(container, item, pos_x, pos_y, pos_z, item_d)
+                    logger.debug(f"Valid placement found at {point} in C{container.id}, Rot {rotation}. Score: {current_score}")
+
+                    # Best Fit Heuristic: If valid, keep the one with the lowest score found so far
+                    if current_score < lowest_score:
+                        lowest_score = current_score
+                        best_placement = {
+                            "container_id": container.id,
+                            "pos_x": pos_x,
+                            "pos_y": pos_y,
+                            "pos_z": pos_z,
+                            "rotation": rotation,
+                            "placed_width": item_w, # Store actual dimensions used
+                            "placed_height": item_h,
+                            "placed_depth": item_d,
+                            "score": current_score,
+                        }
+                        logger.info(f"New best placement found for item {item.name}: Score {current_score} in C{container.id}")
+
+                    # Original code's optimization (commented out): stop if any placement found in preferred zone
+                    # This is generally NOT Best Fit, but First Fit within preferred zone.
+                    # Keep searching for the lowest score across all valid spots.
+                    # if container.zone == item.preferredZone:
+                    #    logger.debug("Stopping search for this container (found spot in preferred zone).")
+                    #    # This break is for the points loop. Might need another flag to break container loop.
+                    #    break # Consider if this early exit is desirable vs finding the absolute best score
+
+            # If a placement was found in this container, no need to check other rotations for this container *if*
+            # the goal is just *any* placement. But for *best* placement, we must check all rotations.
 
     if best_placement:
-        container_id, position, final_dims = best_placement
-        print(f"Final Best Placement: Container={container_id}, Position={position}, Dimensions={final_dims}, Score={min_score}")
-        return container_id, position, final_dims
+        logger.info(f"Final best placement for item {item.name}: Score {best_placement['score']} in C{best_placement['container_id']}")
     else:
-        print(f"Could not find any valid placement for item {item_to_place.itemId}")
-        return None
+        logger.warning(f"Could not find any valid placement for item {item.name} (ID: {item.itemDefinitionId})")
 
-# --- Example Usage (requires creating dummy data or integrating with your app) ---
-if __name__ == '__main__':
-    # Dummy data for testing - replace with data from your database/API calls
-    item1 = ItemCreate(itemId="ITEM001", name="Food Pack", width=10, depth=10, height=5, mass=1, priority=5, expiryDate="2026-12-31", usageLimit=1, preferredZone="ZoneA")
-    item2 = ItemCreate(itemId="ITEM002", name="Toolbox", width=30, depth=20, height=15, mass=5, priority=8, expiryDate="2030-01-01", usageLimit=10, preferredZone="ZoneB")
-    item_to_place_now = ItemCreate(itemId="ITEM003", name="Sample Kit", width=8, depth=12, height=6, mass=0.5, priority=9, expiryDate="2025-08-01", usageLimit=1, preferredZone="ZoneA")
-
-    container1 = Container(containerId="CONT-A1", zone="ZoneA", width=50, depth=50, height=50)
-    container2 = Container(containerId="CONT-B1", zone="ZoneB", width=40, depth=60, height=40)
-
-    # Assume item1 is already placed in container1
-    placed_items = [
-        PlacedItem(itemId="ITEM001", name="Food Pack", containerId="CONT-A1", startW=0, startD=0, startH=0, width=10, depth=10, height=5, priority=5)
-    ]
-
-    all_containers = [container1, container2]
-
-    # Find placement for item_to_place_now
-    result = find_best_placement_for_item(item_to_place_now, all_containers, placed_items)
-
-    if result:
-        found_container_id, found_pos, found_dims = result
-        print(f"\nSuccessfully placed {item_to_place_now.name} in {found_container_id} at {found_pos} with dimensions {found_dims}")
-        # Here you would typically add the newly placed item to your 'placed_items' list or database
-    else:
-        print(f"\nFailed to find placement for {item_to_place_now.name}.")
-        # Here you might trigger rearrangement logic if needed
+    return best_placement
