@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISS Cargo Management System</title>
+    <style>
+        :root {
+            --primary: #00ff41;
+            --secondary: #008f11;
+            --background: #0d0208;
+            --terminal-bg: rgba(8, 20, 12, 0.9);
+            --accent: #3f6b48;
+            --text-shadow: 0 0 5px rgba(0, 255, 65, 0.8);
+            --grid-line: rgba(0, 255, 65, 0.2);
+            --terminal-font: 'Courier New', monospace;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--terminal-font);
+            color: var(--primary);
+        }
+        
+        body {
+            background-color: var(--background);
+            background-image: 
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 20px 20px;
+            height: 100vh;
+            overflow: hidden;
+            padding: 20px;
+        }
+        
+        .crt-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            opacity: 0.15;
+        }
+        
+        .crt-effect::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
+            pointer-events: none;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--terminal-bg);
+            border: 2px solid var(--secondary);
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+            margin-bottom: 20px;
+        }
+        
+        header h1 {
+            font-size: 24px;
+            text-shadow: var(--text-shadow);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .mission-data {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .mission-data div {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .mission-data span {
+            font-size: 14px;
+        }
+        
+        .mission-data .value {
+            font-weight: bold;
+        }
+        
+        main {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            min-height: 0;
+        }
+        
+        .panel {
+            background-color: var(--terminal-bg);
+            border: 2px solid var(--secondary);
+            border-radius: 5px;
+            padding: 15px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+        
+        .nav-panel {
+            width: 250px;
+        }
+        
+        .content-panel {
+            flex: 1;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--secondary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: var(--text-shadow);
+        }
+        
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .panel-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .panel-content::-webkit-scrollbar-track {
+            background: var(--background);
+        }
+        
+        .panel-content::-webkit-scrollbar-thumb {
+            background: var(--secondary);
+            border-radius: 4px;
+        }
+        
+        nav ul {
+            list-style-type: none;
+        }
+        
+        nav li {
+            margin-bottom: 12px;
+        }
+        
+        nav a {
+            display: block;
+            padding: 8px 15px;
+            text-decoration: none;
+            color: var(--primary);
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        nav a:hover, nav a.active {
+            background-color: rgba(0, 255, 65, 0.1);
+            border-left: 3px solid var(--primary);
+            text-shadow: var(--text-shadow);
+        }
+        
+        .nav-heading {
+            font-size: 16px;
+            margin: 20px 0 10px;
+            color: var(--secondary);
+            text-transform: uppercase;
+        }
+        
+        button, .btn {
+            background-color: var(--accent);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: var(--terminal-font);
+            font-size: 14px;
+            transition: all 0.3s;
+            text-shadow: var(--text-shadow);
+        }
+        
+        button:hover, .btn:hover {
+            background-color: var(--secondary);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+        
+        input, select, textarea {
+            background-color: var(--background);
+            border: 1px solid var(--secondary);
+            color: var(--primary);
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            width: 100%;
+            font-family: var(--terminal-font);
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .flex-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .flex-row > div {
+            flex: 1;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        
+        .badge-high {
+            background-color: rgba(255, 50, 50, 0.3);
+            border: 1px solid #ff3232;
+        }
+        
+        .badge-medium {
+            background-color: rgba(255, 165, 0, 0.3);
+            border: 1px solid #ffa500;
+        }
+        
+        .badge-low {
+            background-color: rgba(0, 255, 65, 0.3);
+            border: 1px solid var(--primary);
+        }
+        
+        .container-visual {
+            position: relative;
+            border: 1px solid var(--secondary);
+            background-color: rgba(0, 0, 0, 0.3);
+            height: 300px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            perspective: 800px;
+        }
+        
+        .container-grid {
+            position: absolute;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 1px;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transform: rotateX(30deg) rotateY(0deg);
+        }
+        
+        .container-cell {
+            border: 1px dashed var(--secondary);
+            position: relative;
+            background-color: rgba(0, 143, 17, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .container-cell:hover {
+            background-color: rgba(0, 143, 17, 0.2);
+        }
+        
+        .container-item {
+            position: absolute;
+            background-color: rgba(0, 255, 65, 0.2);
+            border: 1px solid var(--primary);
+            padding: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .container-item:hover {
+            background-color: rgba(0, 255, 65, 0.4);
+            z-index: 10;
+        }
+        
+        .container-item.high-priority {
+            background-color: rgba(255, 50, 50, 0.2);
+            border: 1px solid #ff3232;
+        }
+        
+        .container-item.medium-priority {
+            background-color: rgba(255, 165, 0, 0.2);
+            border: 1px solid #ffa500;
+        }
+        
+        .table-container {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        
+        thead th {
+            background-color: var(--accent);
+            padding: 10px;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        
+        tbody td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--secondary);
+        }
+        
+        tbody tr:hover {
+            background-color: rgba(0, 255, 65, 0.1);
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--secondary);
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            margin-right: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+        
+        .tab.active {
+            background-color: var(--accent);
+            border-top: 1px solid var(--primary);
+            border-left: 1px solid var(--primary);
+            border-right: 1px solid var(--primary);
+            text-shadow: var(--text-shadow);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background-color: var(--terminal-bg);
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: 2px solid var(--secondary);
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+            font-size: 14px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            box-shadow: 0 0 5px var(--primary);
+            animation: blink 2s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: var(--terminal-bg);
+            border: 2px solid var(--secondary);
+            width: 80%;
+            max-width: 600px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--secondary);
+            padding-bottom: 10px;
+        }
+        
+        .close-modal {
+            cursor: pointer;
+            font-size: 20px;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid var(--secondary);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .steps-container {
+            margin-top: 20px;
+        }
+        
+        .step {
+            background-color: rgba(0, 143, 17, 0.2);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--secondary);
+        }
+        
+        .step.active {
+            background-color: rgba(0, 255, 65, 0.2);
+            border-left: 3px solid var(--primary);
+        }
+        
+        /* Time simulation controls */
+        .time-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--terminal-bg);
+            border: 2px solid var(--primary);
+            padding: 15px 20px;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+            z-index: 1002;
+            max-width: 300px;
+            animation: slideIn 0.3s, fadeOut 0.5s 3s forwards;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- CRT screen effect overlay -->
+    <div class="crt-effect"></div>
+    
+    <!-- Main container -->
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>ISS Cargo Management Terminal</h1>
+            <div class="mission-data">
+                <div>
+                    <span>Current Date:</span>
+                    <span class="value" id="current-date">2025-04-06</span>
+                </div>
+                <div>
+                    <span>Mission Day:</span>
+                    <span class="value">267</span>
+                </div>
+                <div>
+                    <span>Storage Capacity:</span>
+                    <span class="value">68% Utilized</span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main content -->
+        <main>
+            <!-- Navigation panel -->
+            <div class="panel nav-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Navigation</div>
+                </div>
+                <div class="panel-content">
+                    <nav>
+                        <ul>
+                            <li><a href="#" class="active">Dashboard</a></li>
+                            <li><a href="#">Inventory Management</a></li>
+                            <li><a href="#">Search & Retrieval</a></li>
+                            <li><a href="#">Waste Management</a></li>
+                            <li><a href="#">Container Map</a></li>
+                            <li><a href="#">Mission Logs</a></li>
+                        </ul>
+                        
+                        <div class="nav-heading">Time Controls</div>
+                        <div class="time-controls">
+                            <button>Next Day</button>
+                            <button>Fast Forward</button>
+                        </div>
+                        
+                        <div class="nav-heading">Import/Export</div>
+                        <ul>
+                            <li><a href="#">Import Items</a></li>
+                            <li><a href="#">Import Containers</a></li>
+                            <li><a href="#">Export Arrangement</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Content panel -->
+            <div class="panel content-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Dashboard</div>
+                    <div>
+                        <button>Refresh Data</button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab active">Overview</button>
+                        <button class="tab">Critical Items</button>
+                        <button class="tab">Upcoming Expirations</button>
+                        <button class="tab">Recent Activities</button>
+                    </div>
+                    
+                    <!-- Tab content - Overview -->
+                    <div class="tab-content active">
+                        <h3>Container Visual</h3>
+                        <div class="container-visual">
+                            <div class="container-grid">
+                                <!-- Container cells would be dynamically generated -->
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                <div class="container-cell"></div>
+                                
+                                <!-- Example items in container -->
+                                <div class="container-item high-priority" style="top: 10%; left: 10%; width: 18%; height: 25%;">
+                                    001: Oxygen
+                                </div>
+                                <div class="container-item medium-priority" style="top: 40%; left: 15%; width: 22%; height: 15%;">
+                                    002: Food
+                                </div>
+                                <div class="container-item" style="top: 20%; left: 40%; width: 15%; height: 20%;">
+                                    003: Tools
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h3>Inventory Summary</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Zone</th>
+                                        <th>Total Items</th>
+                                        <th>Priority Items</th>
+                                        <th>Space Used</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Crew Quarters</td>
+                                        <td>24</td>
+                                        <td>8</td>
+                                        <td>62%</td>
+                                        <td><span class="badge badge-low">Optimal</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Airlock</td>
+                                        <td>12</td>
+                                        <td>5</td>
+                                        <td>45%</td>
+                                        <td><span class="badge badge-low">Optimal</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Laboratory</td>
+                                        <td>37</td>
+                                        <td>15</td>
+                                        <td>88%</td>
+                                        <td><span class="badge badge-high">Near Capacity</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Medical Bay</td>
+                                        <td>19</td>
+                                        <td>12</td>
+                                        <td>76%</td>
+                                        <td><span class="badge badge-medium">Filling Up</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h3>Recommended Actions</h3>
+                        <div class="steps-container">
+                            <div class="step">
+                                <strong>Container Rearrangement Needed</strong>
+                                <p>Laboratory container is nearing capacity (88%). Consider moving non-priority items to Airlock.</p>
+                                <button>Generate Plan</button>
+                            </div>
+                            <div class="step">
+                                <strong>Item Expiration Alert</strong>
+                                <p>5 food items will expire in the next 7 days. Review and prioritize usage.</p>
+                                <button>View Items</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Other tab contents would be similar -->
+                </div>
+            </div>
+        </main>
+        
+        <!-- Status bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <div>System Status: Online</div>
+            </div>
+            <div class="status-item">
+                <div>Last Update: 2025-04-06 08:45:12</div>
+            </div>
+            <div class="status-item">
+                <div>User: CMDR_Johnson</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal example -->
+    <div class="modal" id="itemModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Item Details</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label>Item ID</label>
+                    <input type="text" value="001" readonly>
+                </div>
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" value="Oxygen Cylinder" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <input type="text" value="95 - High" readonly>
+                    </div>
+                </div>
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label>Dimensions (cm)</label>
+                        <input type="text" value="15 x 15 x 50" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Mass (kg)</label>
+                        <input type="text" value="30" readonly>
+                    </div>
+                </div>
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" value="Airlock - Container B" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Coordinates</label>
+                        <input type="text" value="(0,0,0)-(15,15,50)" readonly>
+                    </div>
+                </div>
+                <div class="flex-row">
+                    <div class="form-group">
+                        <label>Usage Count</label>
+                        <input type="text" value="12/100" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Expiry</label>
+                        <input type="text" value="N/A" readonly>
+                    </div>
+                </div>
+                
+                <h4>Retrieval Steps</h4>
+                <div class="steps-container">
+                    <div class="step active">
+                        <strong>Step 1:</strong> Access Container B in Airlock zone
+                    </div>
+                    <div class="step">
+                        <strong>Step 2:</strong> Item is directly accessible (front position)
+                    </div>
+                    <div class="step">
+                        <strong>Step 3:</strong> Remove item and mark as retrieved
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button>Retrieve Item</button>
+                    <button>View in Container</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading spinner -->
+    <div class="loading" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- Notification example -->
+    <div class="notification">
+        <strong>Alert:</strong> Waste items identified for disposal. Check Waste Management panel.
+    </div>
+    
+    <script>
+        // Prevent navigation links from refreshing the page
+document.querySelectorAll('nav a').forEach(link => {
+    link.addEventListener('click', function(event) {
+        // Prevent default behavior (page reload)
+        event.preventDefault();
+        
+        // Remove active class from all links
+        document.querySelectorAll('nav a').forEach(navLink => {
+            navLink.classList.remove('active');
+        });
+        
+        // Add active class to clicked link
+        this.classList.add('active');
+        
+        // Update panel title based on clicked link
+        const linkText = this.textContent;
+        document.querySelector('.content-panel .panel-title').textContent = linkText;
+        
+        // You can add code here to show different content based on the clicked link
+        // For demonstration, we'll just show a notification
+        showNotification(`Navigated to ${linkText}`);
+    });
+});
+
+// Make time control buttons functional
+document.querySelectorAll('.time-controls button').forEach(button => {
+    button.addEventListener('click', function(event) {
+        event.preventDefault();
+        
+        const action = this.textContent;
+        
+        // Show loading spinner
+        const loading = document.querySelector('.loading');
+        loading.style.display = 'flex';
+        
+        // Simulate processing time
+        setTimeout(() => {
+            // Update date
+            const currentDateEl = document.getElementById('current-date');
+            const currentDate = new Date(currentDateEl.textContent);
+            
+            if (action === 'Next Day') {
+                currentDate.setDate(currentDate.getDate() + 1);
+            } else if (action === 'Fast Forward') {
+                currentDate.setDate(currentDate.getDate() + 7); // Fast forward a week
+            }
+            
+            currentDateEl.textContent = currentDate.toISOString().split('T')[0];
+            
+            // Hide loading spinner
+            loading.style.display = 'none';
+            
+            // Show notification
+            showNotification(`Time advanced to ${currentDateEl.textContent}`);
+        }, 1000);
+    });
+});
+
+// Make "Refresh Data" button functional
+document.querySelector('.panel-header button').addEventListener('click', function(event) {
+    event.preventDefault();
+    
+    // Show loading spinner
+    const loading = document.querySelector('.loading');
+    loading.style.display = 'flex';
+    
+    // Simulate refreshing data
+    setTimeout(() => {
+        // Hide loading spinner
+        loading.style.display = 'none';
+        
+        // Show notification
+        showNotification('Dashboard data refreshed successfully');
+    }, 1500);
+});
+
+// Make action buttons in the recommended actions section functional
+document.querySelectorAll('.steps-container button').forEach(button => {
+    button.addEventListener('click', function(event) {
+        event.preventDefault();
+        
+        const action = this.textContent;
+        
+        // Show loading spinner
+        const loading = document.querySelector('.loading');
+        loading.style.display = 'flex';
+        
+        // Simulate processing
+        setTimeout(() => {
+            // Hide loading spinner
+            loading.style.display = 'none';
+            
+            if (action === 'Generate Plan') {
+                // Show modal with a generated plan
+                const modal = document.getElementById('itemModal');
+                const modalTitle = modal.querySelector('.modal-header h3');
+                modalTitle.textContent = 'Container Rearrangement Plan';
+                modal.style.display = 'flex';
+            } else if (action === 'View Items') {
+                // Change tab to "Upcoming Expirations"
+                document.querySelectorAll('.tab')[2].click();
+            }
+            
+            // Show notification
+            showNotification(`Action "${action}" completed`);
+        }, 1200);
+    });
+});
+
+// Make modal buttons functional
+document.querySelectorAll('.modal-content button').forEach(button => {
+    button.addEventListener('click', function(event) {
+        event.preventDefault();
+        
+        const action = this.textContent;
+        
+        // Show loading spinner
+        const loading = document.querySelector('.loading');
+        loading.style.display = 'flex';
+        
+        // Hide the modal
+        this.closest('.modal').style.display = 'none';
+        
+        // Simulate processing
+        setTimeout(() => {
+            // Hide loading spinner
+            loading.style.display = 'none';
+            
+            // Show notification
+            showNotification(`Item action "${action}" completed`);
+        }, 1000);
+    });
+});
+
+// Function to show notifications
+function showNotification(message) {
+    // Remove any existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+        notification.remove();
+    });
+    
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.innerHTML = `<strong>Alert:</strong> ${message}`;
+    document.body.appendChild(notification);
+    
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            notification.remove();
+        }, 500);
+    }, 3000);
+}
+        
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // Show corresponding tab content
+                const index = Array.from(this.parentElement.children).indexOf(this);
+                document.querySelectorAll('.tab-content')[index].classList.add('active');
+            });
+        });
+        
+        // Modal functionality
+        document.querySelectorAll('.container-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.getElementById('itemModal').style.display = 'flex';
+            });
+        });
+        
+        document.querySelectorAll('.close-modal').forEach(close => {
+            close.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        });
+        
+        // Update current date
+        document.getElementById('current-date').textContent = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>

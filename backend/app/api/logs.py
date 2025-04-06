@@ -14,15 +14,13 @@ async def get_action_logs(
 ) -> Dict:
     """
     Retrieve logs filtered by date range, itemId, userId, or actionType.
+
+    - **startDate**: Filter logs after this date (ISO format, e.g., "2023-10-25T12:00:00Z").
+    - **endDate**: Filter logs before this date (ISO format).
+    - **itemId**: Filter by item ID.
+    - **userId**: Filter by user ID.
+    - **actionType**: Filter by action type (e.g., "retrieval").
+    - Returns: A dictionary with a list of logs, e.g., {"logs": [{...}, {...}]}.
     """
-    logs = get_logs(item_id=itemId, user_id=userId)  # Simplified; extend for all filters
-    filtered_logs = logs
-
-    if startDate:
-        filtered_logs = [log for log in filtered_logs if log["timestamp"] >= startDate]
-    if endDate:
-        filtered_logs = [log for log in filtered_logs if log["timestamp"] <= endDate]
-    if actionType:
-        filtered_logs = [log for log in filtered_logs if log["actionType"] == actionType]
-
-    return {"logs": filtered_logs}
+    logs = get_logs(startDate=startDate, endDate=endDate, itemId=itemId, userId=userId, actionType=actionType)
+    return {"logs": logs}
