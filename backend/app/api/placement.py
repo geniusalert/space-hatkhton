@@ -1,10 +1,4 @@
-from fastapi import APIRouter
-
-router = APIRouter()
-
-@router.post("/place")
-async def place_item(item: Item):
-    return {"message": "Item placement in progress"}from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException
 from ..schemas import PlacementRequest, PlacementResponse
 from ..utils.placement_algorithm import place_items
 from ..crud import create_item, create_container
@@ -15,8 +9,10 @@ router = APIRouter()
 async def placement(request: PlacementRequest):
     """
     API endpoint to place items into containers.
-    - Uses the 3D bin packing algorithm.
+
+    - Uses a 3D bin-packing algorithm from placement_algorithm.py.
     - Stores item coordinates in the database.
+    - Returns: Success status and placement details.
     """
     try:
         # Insert containers into the database

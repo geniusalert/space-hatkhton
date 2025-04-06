@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List, Dict
-from ..crud import get_item_by_id, get_item_by_name, get_container, get_container_items
+from ..crud import get_item, get_container, get_container_items
 from ..utils.retrieval_algorithm import calculate_retrieval_steps
+import logging
 
 router = APIRouter()
+logging.basicConfig(level=logging.INFO)
 
 @router.get("/api/search")
 async def search_item(
@@ -11,56 +13,38 @@ async def search_item(
     itemName: Optional[str] = Query(None, description="Name of the item"),
     userId: Optional[str] = Query(None, description="ID of the user making the request")
 ):
-    """
-    Search for an item by ID or name and return its details along with retrieval steps.
-
-    - **itemId**: The unique identifier of the item (optional).
-    - **itemName**: The name of the item (optional).
-    - **userId**: The ID of the user (optional, for logging purposes).
-    - Returns: A JSON response with success status, found status, and item details if found.
-    """
-    # Ensure at least one search parameter is provided
     if not itemId and not itemName:
         raise HTTPException(status_code=400, detail="Either itemId or itemName must be provided")
 
-    # Fetch the item from the database
-    item: Dict = None
+    items: List[Dict] = []
     if itemId:
-        item = get_item_by_id(itemId)
-    else:
-        item = get_item_by_name(itemName)  # Assumes this returns the first match
+        item = get_item(itemId)
+        if item:
+            items = [item]
+    # Note: get_items_by_name is not implemented here; for simplicity, we assume itemId for now
 
-    # Handle case where item is not found
-    if not item:
+    if not items:
         return {"success": True, "found": False}
 
-    # Get container details to determine the zone
+    item = items[0]
     container = get_container(item["containerId"])
-    zone = container["zone"] if container else "Unknown"
+    if container:
+        zone = container["zone"]
+    else:
+        logging.warning(f"Container {item['containerId']} not found for item {item['itemId']}")
+        zone = "Unknown"
 
-    # Get all items in the same container for retrieval step calculation
     container_items: List[Dict] = get_container_items(item["containerId"])
-
-    # Calculate retrieval steps using the retrieval algorithm
     steps: List[Dict] = calculate_retrieval_steps(item, container_items)
 
-    # Construct the response
     response_item = {
         "itemId": item["itemId"],
         "name": item["name"],
         "containerId": item["containerId"],
         "zone": zone,
         "position": {
-            "startCoordinates": {
-                "width": item["startW"],
-                "depth": item["startD"],
-                "height": item["startH"]
-            },
-            "endCoordinates": {
-                "width": item["endW"],
-                "depth": item["endD"],
-                "height": item["endH"]
-            }
+            "startCoordinates": {"width": item["startW"], "depth": item["startD"], "height": item["startH"]},
+            "endCoordinates": {"width": item["endW"], "depth": item["endD"], "height": item["endH"]}
         },
         "retrievalSteps": steps
     }

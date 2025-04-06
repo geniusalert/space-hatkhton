@@ -1,13 +1,20 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 import csv
 from io import StringIO
-from ..crud import create_item, create_container
+from ..crud import create_item, create_container, get_all_items
 from ..schemas import Item, Container
 
 router = APIRouter()
 
 @router.post("/api/import/items")
 async def import_items(file: UploadFile = File(...)) -> Dict:
+    """
+    Import items from a CSV file.
+
+    - CSV should have headers matching Item schema (e.g., itemId, name, width, etc.).
+    - Returns: Success status, count of imported items, and any errors.
+    """
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
     content = await file.read()
@@ -30,6 +37,12 @@ async def import_items(file: UploadFile = File(...)) -> Dict:
 
 @router.post("/api/import/containers")
 async def import_containers(file: UploadFile = File(...)) -> Dict:
+    """
+    Import containers from a CSV file.
+
+    - CSV should have headers matching Container schema (e.g., containerId, width, etc.).
+    - Returns: Success status, count of imported containers, and any errors.
+    """
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
     content = await file.read()
@@ -52,6 +65,11 @@ async def import_containers(file: UploadFile = File(...)) -> Dict:
 
 @router.get("/api/export/arrangement")
 async def export_arrangement():
+    """
+    Export the current item arrangement as a CSV file.
+
+    - Returns: A downloadable CSV file with item positions.
+    """
     items = get_all_items()
     output = StringIO()
     writer = csv.writer(output)
@@ -63,4 +81,4 @@ async def export_arrangement():
             f"({item['startW']},{item['startD']},{item['startH']})",
             f"({item['endW']},{item['endD']},{item['endH']})"
         ])
-    return {"content": output.getvalue(), "filename": "arrangement.csv"}
+    return FileResponse(content=output.getvalue(), filename="arrangement.csv", media_type="text/csv")

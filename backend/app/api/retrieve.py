@@ -1,10 +1,9 @@
 from fastapi import APIRouter, HTTPException
-from ..schemas import RetrieveRequest
+from ..schemas import RetrieveRequest, Log
 from ..crud import get_item_by_id, update_item, create_log
-from ..schemas import Log
 import json
 
-router = L=APIRouter()
+router = APIRouter()  # Fixed typo from L=APIRouter()
 
 @router.post("/api/retrieve")
 async def retrieve_item(request: RetrieveRequest):

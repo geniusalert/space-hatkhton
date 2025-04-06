@@ -9,6 +9,9 @@ router = APIRouter()
 async def simulate_time(numOfDays: int) -> Dict:
     """
     Simulate time progression by a specified number of days.
+
+    - **numOfDays**: Number of days to simulate.
+    - Returns: Success status, new date, and changes made.
     """
     items = get_all_items()
     current_date = datetime.now()

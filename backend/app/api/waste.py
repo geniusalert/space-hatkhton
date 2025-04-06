@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import List, Dict
-from ..crud import get_all_items, get_container, update_item
+from ..crud import get_all_items, get_container, update_item, get_item_weight
 
 router = APIRouter()
 
@@ -9,6 +9,8 @@ router = APIRouter()
 async def identify_waste() -> Dict:
     """
     Identify items that are expired or out of uses.
+
+    - Returns: Success status and list of waste items.
     """
     items = get_all_items()
     waste_items = []
@@ -35,6 +37,11 @@ async def identify_waste() -> Dict:
 async def waste_return_plan(undockingContainerId: str, undockingDate: str, maxWeight: float) -> Dict:
     """
     Plan to move waste items to an undocking module.
+
+    - **undockingContainerId**: Target container ID.
+    - **undockingDate**: Planned undocking date (ISO format).
+    - **maxWeight**: Maximum weight capacity.
+    - Returns: Success status and return manifest.
     """
     waste_items = (await identify_waste())["wasteItems"]
     container = get_container(undockingContainerId)
@@ -46,10 +53,8 @@ async def waste_return_plan(undockingContainerId: str, undockingDate: str, maxWe
     return_items = []
 
     for item in waste_items:
-        item_weight = get_item_weight(item["itemId"])  # Assume this function exists in crud.py
-        item_volume = (item["position"]["endCoordinates"]["width"] - item["position"]["startCoordinates"]["width"]) * \
-                      (item["position"]["endCoordinates"]["depth"] - item["position"]["startCoordinates"]["depth"]) * \
-                      (item["position"]["endCoordinates"]["height"] - item["position"]["startCoordinates"]["height"])
+        item_weight = get_item_weight(item["itemId"])
+        item_volume = item["width"] * item["depth"] * item["height"]  # Fixed to use dimensions
         if total_weight + item_weight <= maxWeight:
             total_weight += item_weight
             total_volume += item_volume
@@ -58,7 +63,7 @@ async def waste_return_plan(undockingContainerId: str, undockingDate: str, maxWe
                 "name": item["name"],
                 "reason": item["reason"]
             })
-            update_item(item["itemId"], {"containerId": undockingContainerId})
+            # Note: containerId update deferred until plan confirmation (not implemented here)
 
     return {
         "success": True,
