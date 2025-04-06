@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISS Cargo Management System</title>
+    <title>ISS Cargo Management Terminal</title>
     <style>
+        /* --- CSS Styles (kept exactly as provided) --- */
         :root {
             --primary: #00ff41;
             --secondary: #008f11;
@@ -15,7 +16,7 @@
             --grid-line: rgba(0, 255, 65, 0.2);
             --terminal-font: 'Courier New', monospace;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
@@ -23,10 +24,10 @@
             font-family: var(--terminal-font);
             color: var(--primary);
         }
-        
+
         body {
             background-color: var(--background);
-            background-image: 
+            background-image:
                 linear-gradient(var(--grid-line) 1px, transparent 1px),
                 linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
             background-size: 20px 20px;
@@ -34,7 +35,7 @@
             overflow: hidden;
             padding: 20px;
         }
-        
+
         .crt-effect {
             position: fixed;
             top: 0;
@@ -47,7 +48,7 @@
             background-size: 100% 4px;
             opacity: 0.15;
         }
-        
+
         .crt-effect::before {
             content: "";
             position: absolute;
@@ -58,7 +59,7 @@
             background: radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
             pointer-events: none;
         }
-        
+
         .container {
             display: flex;
             flex-direction: column;
@@ -67,7 +68,7 @@
             max-width: 1600px;
             margin: 0 auto;
         }
-        
+
         header {
             display: flex;
             justify-content: space-between;
@@ -79,40 +80,40 @@
             box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
             margin-bottom: 20px;
         }
-        
+
         header h1 {
             font-size: 24px;
             text-shadow: var(--text-shadow);
             text-transform: uppercase;
             letter-spacing: 2px;
         }
-        
+
         .mission-data {
             display: flex;
             gap: 20px;
         }
-        
+
         .mission-data div {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
         }
-        
+
         .mission-data span {
             font-size: 14px;
         }
-        
+
         .mission-data .value {
             font-weight: bold;
         }
-        
+
         main {
             display: flex;
             flex: 1;
             gap: 20px;
             min-height: 0;
         }
-        
+
         .panel {
             background-color: var(--terminal-bg);
             border: 2px solid var(--secondary);
@@ -123,15 +124,15 @@
             flex-direction: column;
             box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
         }
-        
+
         .nav-panel {
             width: 250px;
         }
-        
+
         .content-panel {
             flex: 1;
         }
-        
+
         .panel-header {
             display: flex;
             justify-content: space-between;
@@ -140,63 +141,64 @@
             margin-bottom: 15px;
             padding-bottom: 10px;
         }
-        
+
         .panel-title {
             font-size: 18px;
             text-transform: uppercase;
             letter-spacing: 1px;
             text-shadow: var(--text-shadow);
         }
-        
+
         .panel-content {
             flex: 1;
             overflow-y: auto;
             padding-right: 5px;
         }
-        
+
         .panel-content::-webkit-scrollbar {
             width: 8px;
         }
-        
+
         .panel-content::-webkit-scrollbar-track {
             background: var(--background);
         }
-        
+
         .panel-content::-webkit-scrollbar-thumb {
             background: var(--secondary);
             border-radius: 4px;
         }
-        
+
         nav ul {
             list-style-type: none;
         }
-        
+
         nav li {
             margin-bottom: 12px;
         }
-        
-        nav a {
+
+        nav a.nav-link { /* Added class for targeting */
             display: block;
             padding: 8px 15px;
             text-decoration: none;
             color: var(--primary);
             border-left: 3px solid transparent;
             transition: all 0.3s;
+            cursor: pointer; /* Make it look clickable */
         }
-        
-        nav a:hover, nav a.active {
+
+        nav a.nav-link:hover, nav a.nav-link.active {
             background-color: rgba(0, 255, 65, 0.1);
             border-left: 3px solid var(--primary);
             text-shadow: var(--text-shadow);
         }
-        
+
         .nav-heading {
             font-size: 16px;
             margin: 20px 0 10px;
             color: var(--secondary);
             text-transform: uppercase;
         }
-        
+
         button, .btn {
             background-color: var(--accent);
             border: 1px solid var(--primary);
@@ -208,12 +210,19 @@
             transition: all 0.3s;
             text-shadow: var(--text-shadow);
         }
-        
-        button:hover, .btn:hover {
+         button:disabled {
+            background-color: #555; /* Darker grey for disabled */
+            border-color: var(--accent);
+            color: var(--accent);
+            cursor: not-allowed;
+            text-shadow: none;
+        }
+
+        button:hover:not(:disabled), .btn:hover {
             background-color: var(--secondary);
             box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
         }
-        
+
         input, select, textarea {
             background-color: var(--background);
             border: 1px solid var(--secondary);
@@ -223,32 +232,32 @@
             width: 100%;
             font-family: var(--terminal-font);
         }
-        
+
         input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
         }
-        
+
         .form-group {
             margin-bottom: 15px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 5px;
         }
-        
+
         .flex-row {
             display: flex;
             gap: 15px;
             margin-bottom: 15px;
         }
-        
+
         .flex-row > div {
             flex: 1;
         }
-        
+
         .badge {
             display: inline-block;
             padding: 3px 8px;
@@ -256,22 +265,22 @@
             font-size: 12px;
             margin-right: 5px;
         }
-        
+
         .badge-high {
             background-color: rgba(255, 50, 50, 0.3);
             border: 1px solid #ff3232;
         }
-        
+
         .badge-medium {
             background-color: rgba(255, 165, 0, 0.3);
             border: 1px solid #ffa500;
         }
-        
+
         .badge-low {
             background-color: rgba(0, 255, 65, 0.3);
             border: 1px solid var(--primary);
         }
-        
+
         .container-visual {
             position: relative;
             border: 1px solid var(--secondary);
@@ -281,30 +290,22 @@
             overflow: hidden;
             perspective: 800px;
         }
-        
+
         .container-grid {
             position: absolute;
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(4, 1fr);
+            /*display: grid; /* JS will manage items absolutely */
+           /* grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(4, 1fr); */
             gap: 1px;
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
             transform: rotateX(30deg) rotateY(0deg);
         }
-        
-        .container-cell {
-            border: 1px dashed var(--secondary);
-            position: relative;
-            background-color: rgba(0, 143, 17, 0.1);
-            transition: all 0.3s;
-        }
-        
-        .container-cell:hover {
-            background-color: rgba(0, 143, 17, 0.2);
-        }
-        
+
+        /* Remove cells, items will be positioned absolutely */
+       /* .container-cell { ... } */
+
         .container-item {
             position: absolute;
             background-color: rgba(0, 255, 65, 0.2);
@@ -313,58 +314,74 @@
             font-size: 12px;
             cursor: pointer;
             transition: all 0.3s;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            box-sizing: border-box; /* Include border in size */
         }
-        
+
         .container-item:hover {
             background-color: rgba(0, 255, 65, 0.4);
             z-index: 10;
+            overflow: visible; /* Show full text on hover */
         }
-        
-        .container-item.high-priority {
+
+        .container-item.priority-1, .container-item.priority-2, .container-item.priority-3 { /* High priority */
             background-color: rgba(255, 50, 50, 0.2);
             border: 1px solid #ff3232;
         }
-        
-        .container-item.medium-priority {
+
+        .container-item.priority-4, .container-item.priority-5, .container-item.priority-6 { /* Medium priority */
             background-color: rgba(255, 165, 0, 0.2);
             border: 1px solid #ffa500;
         }
-        
+         /* Low priority uses default style */
+
         .table-container {
             width: 100%;
             margin-bottom: 20px;
+            max-height: 400px; /* Example max height */
+            overflow-y: auto;
         }
-        
+        .table-container::-webkit-scrollbar { width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: var(--background); }
+        .table-container::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 4px;}
+
+
         table {
             width: 100%;
             border-collapse: collapse;
             text-align: left;
         }
-        
+
         thead th {
             background-color: var(--accent);
             padding: 10px;
             text-transform: uppercase;
             font-size: 14px;
             letter-spacing: 1px;
+            position: sticky; /* Make header sticky */
+            top: 0; /* Stick to top */
+            z-index: 1; /* Ensure it's above scrolling content */
         }
-        
+
         tbody td {
             padding: 8px 10px;
             border-bottom: 1px solid var(--secondary);
+            font-size: 13px; /* Slightly smaller for tables */
         }
-        
+
         tbody tr:hover {
             background-color: rgba(0, 255, 65, 0.1);
         }
-        
+
         .tabs {
             display: flex;
             margin-bottom: 20px;
             border-bottom: 1px solid var(--secondary);
         }
-        
-        .tab {
+
+        .tab { /* Secondary tabs within content panel */
             padding: 10px 20px;
             cursor: pointer;
             background-color: transparent;
@@ -374,7 +391,7 @@
             letter-spacing: 1px;
             font-size: 14px;
         }
-        
+
         .tab.active {
             background-color: var(--accent);
             border-top: 1px solid var(--primary);
@@ -382,15 +399,16 @@
             border-right: 1px solid var(--primary);
             text-shadow: var(--text-shadow);
         }
-        
-        .tab-content {
-            display: none;
+
+        /* --- Main Content Area Tabs --- */
+        .main-tab-content {
+            display: none; /* Hide all main sections by default */
         }
-        
-        .tab-content.active {
-            display: block;
+        .main-tab-content.active {
+            display: block; /* Show the active main section */
         }
-        
+        /* --- End Main Content Area Tabs --- */
+
         .status-bar {
             display: flex;
             justify-content: space-between;
@@ -402,13 +420,13 @@
             box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
             font-size: 14px;
         }
-        
+
         .status-item {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
+
         .status-indicator {
             width: 10px;
             height: 10px;
@@ -417,14 +435,14 @@
             box-shadow: 0 0 5px var(--primary);
             animation: blink 2s infinite;
         }
-        
+
         @keyframes blink {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        
+
         .modal {
-            display: none;
+            display: none; /* Hidden by default */
             position: fixed;
             top: 0;
             left: 0;
@@ -435,18 +453,22 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .modal-content {
             background-color: var(--terminal-bg);
             border: 2px solid var(--secondary);
             width: 80%;
-            max-width: 600px;
+            max-width: 700px; /* Increased width */
             padding: 20px;
             box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
-            max-height: 80vh;
+            max-height: 85vh; /* Increased height */
             overflow-y: auto;
         }
-        
+         .modal-content::-webkit-scrollbar { width: 8px; }
+         .modal-content::-webkit-scrollbar-track { background: var(--background); }
+         .modal-content::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 4px;}
+
+
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -455,13 +477,17 @@
             border-bottom: 1px solid var(--secondary);
             padding-bottom: 10px;
         }
-        
+
         .close-modal {
             cursor: pointer;
             font-size: 20px;
+            padding: 5px 10px; /* Easier to click */
+            background: none;
+            border: none;
         }
-        
+
         .loading {
+            display: none; /* Hidden by default */
             position: fixed;
             top: 0;
             left: 0;
@@ -473,7 +499,7 @@
             align-items: center;
             z-index: 1001;
         }
-        
+
         .spinner {
             width: 60px;
             height: 60px;
@@ -482,88 +508,144 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         .steps-container {
             margin-top: 20px;
         }
-        
+
         .step {
             background-color: rgba(0, 143, 17, 0.2);
             padding: 10px;
             margin-bottom: 10px;
             border-left: 3px solid var(--secondary);
+            font-size: 13px;
         }
-        
-        .step.active {
+        .step strong { font-weight: normal; text-shadow: var(--text-shadow);}
+
+
+        .step.active { /* Can be used to highlight current step */
             background-color: rgba(0, 255, 65, 0.2);
             border-left: 3px solid var(--primary);
         }
-        
+
         /* Time simulation controls */
         .time-controls {
             display: flex;
+            flex-direction: column; /* Stack buttons */
             gap: 10px;
             margin-bottom: 20px;
         }
-        
+        .time-controls input { width: calc(100% - 24px); } /* Adjust width */
+
+
         /* Notifications */
-        .notification {
+        #notification-area {
             position: fixed;
             top: 20px;
             right: 20px;
+            z-index: 1002;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        }
+        .notification {
             background-color: var(--terminal-bg);
             border: 2px solid var(--primary);
             padding: 15px 20px;
             box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
-            z-index: 1002;
-            max-width: 300px;
-            animation: slideIn 0.3s, fadeOut 0.5s 3s forwards;
+            animation: slideIn 0.3s, fadeOut 0.5s 4s forwards; /* Linger for 4s */
+            font-size: 14px;
         }
-        
+         .notification.error {
+            border-color: #ff3232;
+            box-shadow: 0 0 15px rgba(255, 50, 50, 0.5);
+         }
+
         @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1;}
         }
-        
+
         @keyframes fadeOut {
             from { opacity: 1; }
-            to { opacity: 0; }
+            to { opacity: 0; display: none; }
         }
+
+        /* --- Status messages within panels --- */
+        .status-message {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid var(--secondary);
+            background-color: rgba(0, 143, 17, 0.1);
+            border-radius: 3px;
+            display: none; /* Hidden by default */
+        }
+         .status-message.error {
+             border-color: #ff3232;
+             background-color: rgba(255, 50, 50, 0.1);
+             color: #ffcccc; /* Lighter red for readability */
+         }
+         .status-message.success {
+              border-color: var(--primary);
+             background-color: rgba(0, 255, 65, 0.1);
+             color: var(--primary);
+         }
+         /* --- End Status messages --- */
+         /* --- Results area --- */
+         .results-area {
+             margin-top: 15px;
+             padding: 15px;
+             background-color: rgba(0,0,0,0.3);
+             border: 1px solid var(--secondary);
+             border-radius: 4px;
+             white-space: pre-wrap; /* Preserve formatting */
+             word-wrap: break-word;
+             max-height: 400px; /* Limit height */
+             overflow-y: auto;
+             display: none; /* Hidden by default */
+             font-size: 13px;
+         }
+         .results-area::-webkit-scrollbar { width: 8px; }
+         .results-area::-webkit-scrollbar-track { background: var(--background); }
+         .results-area::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 4px;}
+          .results-area pre { /* Style pre tag if used inside */
+             background-color: transparent;
+             padding: 0;
+             border: none;
+             overflow-x: visible; /* Allow horizontal scroll if needed */
+             color: var(--primary);
+         }
+         /* --- End Results area --- */
+
     </style>
 </head>
 <body>
-    <!-- CRT screen effect overlay -->
     <div class="crt-effect"></div>
-    
-    <!-- Main container -->
+
     <div class="container">
-        <!-- Header -->
         <header>
             <h1>ISS Cargo Management Terminal</h1>
             <div class="mission-data">
                 <div>
                     <span>Current Date:</span>
-                    <span class="value" id="current-date">2025-04-06</span>
+                    <span class="value" id="current-date">2025-04-07</span>
                 </div>
                 <div>
                     <span>Mission Day:</span>
-                    <span class="value">267</span>
-                </div>
+                    <span class="value" id="mission-day">268</span> </div>
                 <div>
                     <span>Storage Capacity:</span>
-                    <span class="value">68% Utilized</span>
-                </div>
+                    <span class="value" id="storage-capacity">--% Utilized</span> </div>
             </div>
         </header>
-        
-        <!-- Main content -->
+
         <main>
-            <!-- Navigation panel -->
             <div class="panel nav-panel">
                 <div class="panel-header">
                     <div class="panel-title">Navigation</div>
@@ -571,450 +653,1343 @@
                 <div class="panel-content">
                     <nav>
                         <ul>
-                            <li><a href="#" class="active">Dashboard</a></li>
-                            <li><a href="#">Inventory Management</a></li>
-                            <li><a href="#">Search & Retrieval</a></li>
-                            <li><a href="#">Waste Management</a></li>
-                            <li><a href="#">Container Map</a></li>
-                            <li><a href="#">Mission Logs</a></li>
+                            <li><a href="#" class="nav-link active" data-target="dashboard-content">Dashboard</a></li>
+                            <li><a href="#" class="nav-link" data-target="placement-content">Placement</a></li>
+                            <li><a href="#" class="nav-link" data-target="inventory-content">Inventory Mgmt</a></li>
+                            <li><a href="#" class="nav-link" data-target="search-content">Search &amp; Retrieval</a></li>
+                            <li><a href="#" class="nav-link" data-target="waste-content">Waste Management</a></li>
+                            <li><a href="#" class="nav-link" data-target="logs-content">Mission Logs</a></li>
                         </ul>
-                        
-                        <div class="nav-heading">Time Controls</div>
-                        <div class="time-controls">
-                            <button>Next Day</button>
-                            <button>Fast Forward</button>
+
+                        <div class="nav-heading">Simulation</div>
+                        <div class="time-controls" id="simulation-controls"> <div class="form-group">
+                                <label for="simulate-duration">Simulate Days:</label>
+                                <input type="number" id="simulate-duration" value="1" min="1" style="width: 80px; display: inline-block; margin-bottom: 0;">
+                                <button id="simulate-btn">Run Sim</button>
+                            </div>
                         </div>
-                        
-                        <div class="nav-heading">Import/Export</div>
+
+                        <div class="nav-heading">Data</div>
                         <ul>
-                            <li><a href="#">Import Items</a></li>
-                            <li><a href="#">Import Containers</a></li>
-                            <li><a href="#">Export Arrangement</a></li>
+                             <li><a href="#" class="nav-link" data-target="import-export-content">Import / Export</a></li>
                         </ul>
                     </nav>
                 </div>
             </div>
-            
-            <!-- Content panel -->
+
             <div class="panel content-panel">
                 <div class="panel-header">
-                    <div class="panel-title">Dashboard</div>
-                    <div>
-                        <button>Refresh Data</button>
-                    </div>
+                    <div class="panel-title" id="content-panel-title">Dashboard</div> <div>
+                        <button id="refresh-data-btn">Refresh Data</button> </div>
                 </div>
-                <div class="panel-content">
-                    <!-- Tabs -->
-                    <div class="tabs">
-                        <button class="tab active">Overview</button>
-                        <button class="tab">Critical Items</button>
-                        <button class="tab">Upcoming Expirations</button>
-                        <button class="tab">Recent Activities</button>
+                <div class="panel-content" id="main-panel-content-area"> <div class="main-tab-content active" id="dashboard-content">
+                        <div class="status-message" id="dashboard-status"></div> <h3>Container Overview</h3>
+                         <div class="form-group">
+                             <label for="dashboard-container-select">Select Container:</label>
+                             <select id="dashboard-container-select">
+                                 <option value="">-- Select Container --</option>
+                                 </select>
+                         </div>
+                         <div class="container-visual" id="dashboard-container-visual">
+                             <div class="container-grid" id="dashboard-container-grid">
+                                 <div style="padding: 10px; text-align: center;">Select a container to visualize.</div>
+                             </div>
+                         </div>
+
+                         <h3>Inventory Summary</h3>
+                         <div class="table-container">
+                             <table id="dashboard-inventory-summary-table">
+                                 <thead>
+                                     <tr>
+                                         <th>Zone</th>
+                                         <th>Total Items</th>
+                                         <th>Priority Items (P1-3)</th>
+                                         <th>Space Used (%)</th> <th>Status</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody>
+                                     <tr><td colspan="5">Loading summary...</td></tr>
+                                 </tbody>
+                             </table>
+                         </div>
+
+                         <h3>Recommended Actions</h3>
+                         <div class="steps-container" id="dashboard-recommendations">
+                            <div class="step">No recommendations at this time.</div>
+                         </div>
                     </div>
-                    
-                    <!-- Tab content - Overview -->
-                    <div class="tab-content active">
-                        <h3>Container Visual</h3>
-                        <div class="container-visual">
-                            <div class="container-grid">
-                                <!-- Container cells would be dynamically generated -->
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                <div class="container-cell"></div>
-                                
-                                <!-- Example items in container -->
-                                <div class="container-item high-priority" style="top: 10%; left: 10%; width: 18%; height: 25%;">
-                                    001: Oxygen
-                                </div>
-                                <div class="container-item medium-priority" style="top: 40%; left: 15%; width: 22%; height: 15%;">
-                                    002: Food
-                                </div>
-                                <div class="container-item" style="top: 20%; left: 40%; width: 15%; height: 20%;">
-                                    003: Tools
-                                </div>
+                    <div class="main-tab-content" id="placement-content">
+                        <h3>Suggest Placement</h3>
+                        <form id="placement-form">
+                            <div class="form-group">
+                                <label for="placement-item-id">Item ID to Place:</label>
+                                <input type="text" id="placement-item-id" name="itemId" required placeholder="e.g., ITEM123">
                             </div>
-                        </div>
-                        
-                        <h3>Inventory Summary</h3>
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Zone</th>
-                                        <th>Total Items</th>
-                                        <th>Priority Items</th>
-                                        <th>Space Used</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Crew Quarters</td>
-                                        <td>24</td>
-                                        <td>8</td>
-                                        <td>62%</td>
-                                        <td><span class="badge badge-low">Optimal</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Airlock</td>
-                                        <td>12</td>
-                                        <td>5</td>
-                                        <td>45%</td>
-                                        <td><span class="badge badge-low">Optimal</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Laboratory</td>
-                                        <td>37</td>
-                                        <td>15</td>
-                                        <td>88%</td>
-                                        <td><span class="badge badge-high">Near Capacity</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Medical Bay</td>
-                                        <td>19</td>
-                                        <td>12</td>
-                                        <td>76%</td>
-                                        <td><span class="badge badge-medium">Filling Up</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <h3>Recommended Actions</h3>
-                        <div class="steps-container">
-                            <div class="step">
-                                <strong>Container Rearrangement Needed</strong>
-                                <p>Laboratory container is nearing capacity (88%). Consider moving non-priority items to Airlock.</p>
-                                <button>Generate Plan</button>
-                            </div>
-                            <div class="step">
-                                <strong>Item Expiration Alert</strong>
-                                <p>5 food items will expire in the next 7 days. Review and prioritize usage.</p>
-                                <button>View Items</button>
-                            </div>
+                            <button type="submit">Find Placement Slot</button>
+                        </form>
+                        <div class="status-message" id="placement-status"></div>
+                        <div class="results-area" id="placement-results">
+                            <h4>Placement Suggestion:</h4>
+                            <pre></pre>
                         </div>
                     </div>
-                    
-                    <!-- Other tab contents would be similar -->
-                </div>
-            </div>
-        </main>
-        
-        <!-- Status bar -->
+                    <div class="main-tab-content" id="inventory-content">
+                        <div class="tabs">
+                            <button class="tab inventory-subtab active" data-subtarget="inventory-placed-items">Placed Items</button>
+                            <button class="tab inventory-subtab" data-subtarget="inventory-item-definitions">Item Definitions</button>
+                            <button class="tab inventory-subtab" data-subtarget="inventory-containers">Containers</button>
+                        </div>
+
+                         <div class="status-message" id="inventory-status"></div>
+
+                         <div class="tab-content inventory-subtab-content active" id="inventory-placed-items">
+                             <h3>All Placed Items</h3>
+                             <div class="table-container">
+                                 <table id="inventory-placed-table">
+                                     <thead>
+                                         <tr>
+                                             <th>Item ID</th>
+                                             <th>Name</th>
+                                             <th>Container ID</th>
+                                             <th>Priority</th>
+                                             <th>Position (W,D,H)</th>
+                                             <th>Size (W,D,H)</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody id="inventory-placed-table-body">
+                                         <tr><td colspan="6">Loading placed items...</td></tr>
+                                     </tbody>
+                                 </table>
+                            </div>
+                         </div>
+
+                         <div class="tab-content inventory-subtab-content" id="inventory-item-definitions">
+                            <h3>Item Definitions (Templates)</h3>
+                             <div class="table-container">
+                                 <table id="inventory-definitions-table">
+                                     <thead>
+                                         <tr>
+                                             <th>Item ID</th>
+                                             <th>Name</th>
+                                             <th>Size (W,D,H)</th>
+                                             <th>Mass</th>
+                                             <th>Priority</th>
+                                             <th>Expiry</th>
+                                             <th>Usage Limit</th>
+                                             <th>Pref. Zone</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody id="inventory-definitions-table-body">
+                                        <tr><td colspan="8">Loading item definitions...</td></tr>
+                                     </tbody>
+                                 </table>
+                             </div>
+                         </div>
+
+                         <div class="tab-content inventory-subtab-content" id="inventory-containers">
+                             <h3>Containers</h3>
+                              <div class="table-container">
+                                 <table id="inventory-containers-table">
+                                     <thead>
+                                         <tr>
+                                             <th>Container ID</th>
+                                             <th>Zone</th>
+                                             <th>Size (W,D,H)</th>
+                                             <th>Items Inside</th>
+                                             <th>% Full (Approx)</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody id="inventory-containers-table-body">
+                                          <tr><td colspan="5">Loading containers...</td></tr>
+                                     </tbody>
+                                 </table>
+                             </div>
+                         </div>
+                    </div>
+                    <div class="main-tab-content" id="search-content">
+                         <h3>Search & Retrieve Item</h3>
+                         <form id="search-form">
+                            <div class="form-group">
+                                <label for="search-term">Item ID or Name:</label>
+                                <input type="text" id="search-term" name="searchTerm" required placeholder="Enter ID or exact name">
+                            </div>
+                             <button type="submit">Search Item</button>
+                         </form>
+                         <div class="status-message" id="search-status"></div>
+                         <div class="results-area" id="search-results">
+                            <h4>Search Result (Best Match):</h4>
+                             <pre></pre>
+                             <button id="execute-retrieval-btn" style="display: none; margin-top: 15px;">Log Item Retrieved</button>
+                         </div>
+                    </div>
+                    <div class="main-tab-content" id="waste-content">
+                         <h3>Waste Management</h3>
+                         <button id="identify-waste-btn">Identify Waste Items</button>
+                         <div class="status-message" id="waste-identify-status"></div>
+                         <h4>Identified Waste</h4>
+                         <div class="table-container" style="max-height: 250px;"> <table id="waste-items-table">
+                                 <thead>
+                                     <tr>
+                                         <th>Item ID</th>
+                                         <th>Name</th>
+                                         <th>Container</th>
+                                         <th>Reason</th> </tr>
+                                 </thead>
+                                 <tbody id="waste-items-table-body">
+                                      <tr><td colspan="4">Click 'Identify Waste Items' to load.</td></tr>
+                                 </tbody>
+                             </table>
+                         </div>
+
+                         <hr style="border-color: var(--secondary); margin: 20px 0;">
+
+                         <h3>Plan Waste Return</h3>
+                         <form id="waste-plan-form">
+                             <div class="flex-row">
+                                 <div class="form-group">
+                                    <label for="waste-target-container">Undocking Container ID:</label>
+                                    <input type="text" id="waste-target-container" name="undocking_container_id" required value="UNDOCK-01">
+                                 </div>
+                                 <div class="form-group">
+                                     <label for="waste-max-weight">Max Weight (kg):</label>
+                                     <input type="number" id="waste-max-weight" name="max_weight" required step="0.1" value="100">
+                                 </div>
+                             </div>
+                             <button type="submit">Generate Return Plan</button>
+                         </form>
+                         <div class="status-message" id="waste-plan-status"></div>
+                         <div class="results-area" id="waste-plan-results">
+                             <h4>Waste Return Plan:</h4>
+                             <pre></pre>
+                             </div>
+                    </div>
+                    <div class="main-tab-content" id="logs-content">
+                        <h3>Mission Logs</h3>
+                        <div class="status-message" id="logs-status"></div>
+                         <div class="table-container" style="max-height: 60vh;"> <table id="logs-table">
+                                 <thead>
+                                     <tr>
+                                         <th>Timestamp</th>
+                                         <th>User</th>
+                                         <th>Action</th>
+                                         <th>Details</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody id="logs-table-body">
+                                      <tr><td colspan="4">Loading logs...</td></tr>
+                                 </tbody>
+                             </table>
+                         </div>
+                    </div>
+                    <div class="main-tab-content" id="import-export-content">
+                         <h3>Import / Export Data</h3>
+                         <div class="status-message" id="import-export-status"></div>
+
+                         <h4>Export All Data</h4>
+                         <button id="export-data-btn">Export Data as JSON</button>
+                         <div class="results-area" id="export-results-area">
+                             <h4>Exported Data:</h4>
+                             <pre></pre>
+                         </div>
+
+                         <hr style="border-color: var(--secondary); margin: 20px 0;">
+
+                         <h4>Import Data (JSON)</h4>
+                         <form id="import-form">
+                             <div class="form-group">
+                                 <label for="import-items-json">Items JSON Array:</label>
+                                 <textarea id="import-items-json" name="itemsJson" rows="5" placeholder='[{"itemId": "ITEM001", "name": "Food Pack", ...}]'></textarea>
+                             </div>
+                             <div class="form-group">
+                                 <label for="import-containers-json">Containers JSON Array:</label>
+                                 <textarea id="import-containers-json" name="containersJson" rows="3" placeholder='[{"containerId": "CONT-A1", "zone": "ZoneA", ...}]'></textarea>
+                             </div>
+                             <button type="submit">Import Data</button>
+                         </form>
+                    </div>
+                    </div> </div> </main>
+
         <div class="status-bar">
             <div class="status-item">
-                <div class="status-indicator"></div>
-                <div>System Status: Online</div>
+                <div class="status-indicator" id="system-status-indicator"></div>
+                <div id="system-status-text">System Status: Online</div>
             </div>
             <div class="status-item">
-                <div>Last Update: 2025-04-06 08:45:12</div>
+                <div id="last-update-time">Last Update: Initializing...</div>
             </div>
             <div class="status-item">
-                <div>User: CMDR_Johnson</div>
+                <div id="user-id-status">User: CMDR_Default</div> </div>
+        </div>
+    </div> <div class="modal" id="itemDetailModal"> <div class="modal-content" id="modal-content-area"> <div class="modal-header">
+                <h3 id="modal-title">Item Details</h3> <button class="close-modal" id="modal-close-btn">&times;</button> </div>
+            <div id="modal-body">
+                <p>Loading details...</p>
             </div>
         </div>
     </div>
-    
-    <!-- Modal example -->
-    <div class="modal" id="itemModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Item Details</h3>
-                <span class="close-modal">&times;</span>
-            </div>
-            <div>
-                <div class="form-group">
-                    <label>Item ID</label>
-                    <input type="text" value="001" readonly>
-                </div>
-                <div class="flex-row">
-                    <div class="form-group">
-                        <label>Name</label>
-                        <input type="text" value="Oxygen Cylinder" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Priority</label>
-                        <input type="text" value="95 - High" readonly>
-                    </div>
-                </div>
-                <div class="flex-row">
-                    <div class="form-group">
-                        <label>Dimensions (cm)</label>
-                        <input type="text" value="15 x 15 x 50" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Mass (kg)</label>
-                        <input type="text" value="30" readonly>
-                    </div>
-                </div>
-                <div class="flex-row">
-                    <div class="form-group">
-                        <label>Location</label>
-                        <input type="text" value="Airlock - Container B" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Coordinates</label>
-                        <input type="text" value="(0,0,0)-(15,15,50)" readonly>
-                    </div>
-                </div>
-                <div class="flex-row">
-                    <div class="form-group">
-                        <label>Usage Count</label>
-                        <input type="text" value="12/100" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Expiry</label>
-                        <input type="text" value="N/A" readonly>
-                    </div>
-                </div>
-                
-                <h4>Retrieval Steps</h4>
-                <div class="steps-container">
-                    <div class="step active">
-                        <strong>Step 1:</strong> Access Container B in Airlock zone
-                    </div>
-                    <div class="step">
-                        <strong>Step 2:</strong> Item is directly accessible (front position)
-                    </div>
-                    <div class="step">
-                        <strong>Step 3:</strong> Remove item and mark as retrieved
-                    </div>
-                </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button>Retrieve Item</button>
-                    <button>View in Container</button>
-                </div>
-            </div>
-        </div>
+
+    <div class="loading" id="loading-spinner" style="display: none;"> <div class="spinner"></div>
     </div>
-    
-    <!-- Loading spinner -->
-    <div class="loading" style="display: none;">
-        <div class="spinner"></div>
-    </div>
-    
-    <!-- Notification example -->
-    <div class="notification">
-        <strong>Alert:</strong> Waste items identified for disposal. Check Waste Management panel.
-    </div>
-    
+
+    <div id="notification-area">
+         </div>
+
     <script>
-        // Prevent navigation links from refreshing the page
-document.querySelectorAll('nav a').forEach(link => {
-    link.addEventListener('click', function(event) {
-        // Prevent default behavior (page reload)
-        event.preventDefault();
-        
-        // Remove active class from all links
-        document.querySelectorAll('nav a').forEach(navLink => {
-            navLink.classList.remove('active');
-        });
-        
-        // Add active class to clicked link
-        this.classList.add('active');
-        
-        // Update panel title based on clicked link
-        const linkText = this.textContent;
-        document.querySelector('.content-panel .panel-title').textContent = linkText;
-        
-        // You can add code here to show different content based on the clicked link
-        // For demonstration, we'll just show a notification
-        showNotification(`Navigated to ${linkText}`);
-    });
-});
+        // --- Wrapped entire JS in DOMContentLoaded ---
+        document.addEventListener('DOMContentLoaded', () => {
 
-// Make time control buttons functional
-document.querySelectorAll('.time-controls button').forEach(button => {
-    button.addEventListener('click', function(event) {
-        event.preventDefault();
-        
-        const action = this.textContent;
-        
-        // Show loading spinner
-        const loading = document.querySelector('.loading');
-        loading.style.display = 'flex';
-        
-        // Simulate processing time
-        setTimeout(() => {
-            // Update date
+            // --- Configuration ---
+            const API_BASE_URL = 'http://localhost:8000/api'; // Ensure this matches backend
+            let CURRENT_USER_ID = 'CMDR_Default'; // Default user, can be updated
+
+            // --- DOM Element References (Cache common elements) ---
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const notificationArea = document.getElementById('notification-area');
+            const mainPanelContentArea = document.getElementById('main-panel-content-area');
+            const contentPanelTitle = document.getElementById('content-panel-title');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const mainTabContents = document.querySelectorAll('.main-tab-content');
+            const userIdStatus = document.getElementById('user-id-status');
+            const systemStatusText = document.getElementById('system-status-text');
+            const systemStatusIndicator = document.getElementById('system-status-indicator');
+            const lastUpdateTime = document.getElementById('last-update-time');
             const currentDateEl = document.getElementById('current-date');
-            const currentDate = new Date(currentDateEl.textContent);
-            
-            if (action === 'Next Day') {
-                currentDate.setDate(currentDate.getDate() + 1);
-            } else if (action === 'Fast Forward') {
-                currentDate.setDate(currentDate.getDate() + 7); // Fast forward a week
+            const missionDayEl = document.getElementById('mission-day');
+            const storageCapacityEl = document.getElementById('storage-capacity');
+
+            // --- State ---
+            let currentModalData = null; // Store data related to the currently open modal item
+
+            // --- Utility Functions ---
+
+            /** Shows the loading spinner */
+            function showLoading() {
+                if (loadingSpinner) loadingSpinner.style.display = 'flex';
             }
-            
-            currentDateEl.textContent = currentDate.toISOString().split('T')[0];
-            
-            // Hide loading spinner
-            loading.style.display = 'none';
-            
-            // Show notification
-            showNotification(`Time advanced to ${currentDateEl.textContent}`);
-        }, 1000);
-    });
-});
 
-// Make "Refresh Data" button functional
-document.querySelector('.panel-header button').addEventListener('click', function(event) {
-    event.preventDefault();
-    
-    // Show loading spinner
-    const loading = document.querySelector('.loading');
-    loading.style.display = 'flex';
-    
-    // Simulate refreshing data
-    setTimeout(() => {
-        // Hide loading spinner
-        loading.style.display = 'none';
-        
-        // Show notification
-        showNotification('Dashboard data refreshed successfully');
-    }, 1500);
-});
-
-// Make action buttons in the recommended actions section functional
-document.querySelectorAll('.steps-container button').forEach(button => {
-    button.addEventListener('click', function(event) {
-        event.preventDefault();
-        
-        const action = this.textContent;
-        
-        // Show loading spinner
-        const loading = document.querySelector('.loading');
-        loading.style.display = 'flex';
-        
-        // Simulate processing
-        setTimeout(() => {
-            // Hide loading spinner
-            loading.style.display = 'none';
-            
-            if (action === 'Generate Plan') {
-                // Show modal with a generated plan
-                const modal = document.getElementById('itemModal');
-                const modalTitle = modal.querySelector('.modal-header h3');
-                modalTitle.textContent = 'Container Rearrangement Plan';
-                modal.style.display = 'flex';
-            } else if (action === 'View Items') {
-                // Change tab to "Upcoming Expirations"
-                document.querySelectorAll('.tab')[2].click();
+            /** Hides the loading spinner */
+            function hideLoading() {
+                if (loadingSpinner) loadingSpinner.style.display = 'none';
             }
-            
-            // Show notification
-            showNotification(`Action "${action}" completed`);
-        }, 1200);
-    });
-});
 
-// Make modal buttons functional
-document.querySelectorAll('.modal-content button').forEach(button => {
-    button.addEventListener('click', function(event) {
-        event.preventDefault();
-        
-        const action = this.textContent;
-        
-        // Show loading spinner
-        const loading = document.querySelector('.loading');
-        loading.style.display = 'flex';
-        
-        // Hide the modal
-        this.closest('.modal').style.display = 'none';
-        
-        // Simulate processing
-        setTimeout(() => {
-            // Hide loading spinner
-            loading.style.display = 'none';
-            
-            // Show notification
-            showNotification(`Item action "${action}" completed`);
-        }, 1000);
-    });
-});
+            /**
+             * Displays a notification message.
+             * @param {string} message - The message to display.
+             * @param {boolean} isError - If true, styles as an error.
+             */
+            function showNotification(message, isError = false) {
+                if (!notificationArea) return;
+                const notification = document.createElement('div');
+                notification.classList.add('notification');
+                if (isError) {
+                    notification.classList.add('error');
+                    notification.innerHTML = `<strong>Error:</strong> ${message}`;
+                } else {
+                    notification.innerHTML = `<strong>Info:</strong> ${message}`;
+                }
+                notificationArea.appendChild(notification);
 
-// Function to show notifications
-function showNotification(message) {
-    // Remove any existing notifications
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notification => {
-        notification.remove();
-    });
-    
-    // Create new notification
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.innerHTML = `<strong>Alert:</strong> ${message}`;
-    document.body.appendChild(notification);
-    
-    // Remove notification after 3 seconds
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        setTimeout(() => {
-            notification.remove();
-        }, 500);
-    }, 3000);
-}
-        
-        // Tab switching
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                // Remove active class from all tabs
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                // Add active class to clicked tab
-                this.classList.add('active');
-                
-                // Hide all tab contents
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.remove('active');
+                // Automatically remove after animation finishes (set in CSS animation `fadeOut`)
+                setTimeout(() => {
+                    notification.remove();
+                }, 4500); // Slightly longer than animation duration
+            }
+
+            /**
+             * Shows a status message within a specific panel/area.
+             * @param {string} elementId - The ID of the status message container.
+             * @param {string} message - The message text.
+             * @param {boolean} isError - True if it's an error message.
+             */
+             function showStatus(elementId, message, isError = false) {
+                const statusEl = document.getElementById(elementId);
+                if (!statusEl) {
+                    console.warn(`Status element not found: ${elementId}`);
+                    showNotification(message, isError); // Fallback to notification
+                    return;
+                }
+                statusEl.textContent = message;
+                statusEl.className = `status-message ${isError ? 'error' : 'success'}`;
+                statusEl.style.display = 'block';
+             }
+
+             /** Hides a status message container. */
+             function hideStatus(elementId) {
+                 const statusEl = document.getElementById(elementId);
+                 if (statusEl) statusEl.style.display = 'none';
+             }
+
+              /**
+             * Shows results, typically preformatted JSON, in a results container.
+             * Clears previous content and ensures the container is visible.
+             * @param {string} containerId - The ID of the results container div.
+             * @param {object|string} data - Data to display (object is stringified, string shown directly).
+             * @param {boolean} isJson - If true, pretty-print data as JSON.
+             */
+            function showResults(containerId, data, isJson = true) {
+                 const resultsEl = document.getElementById(containerId);
+                 if (!resultsEl) {
+                    console.warn(`Results element not found: ${containerId}`);
+                    return;
+                 }
+                 const preEl = resultsEl.querySelector('pre');
+                 let content = '';
+                 if (isJson) {
+                     content = JSON.stringify(data, null, 2) || 'No data received.';
+                 } else {
+                     content = data || 'No data received.';
+                 }
+
+                 if (preEl) {
+                     preEl.textContent = content;
+                 } else {
+                     // Fallback if no <pre> tag
+                     resultsEl.innerHTML = `<pre>${content}</pre>`;
+                 }
+                 resultsEl.style.display = 'block';
+             }
+
+              /** Hides a results container. */
+             function hideResults(containerId) {
+                 const resultsEl = document.getElementById(containerId);
+                 if (resultsEl) {
+                     resultsEl.style.display = 'none';
+                      const preEl = resultsEl.querySelector('pre');
+                      if (preEl) preEl.textContent = ''; // Clear content
+                 }
+             }
+
+            /** API Fetch Wrapper */
+            async function fetchApi(method, endpoint, body = null, params = null) {
+                const url = new URL(`${API_BASE_URL}${endpoint}`);
+                 if (params) {
+                    // Add default params like userId if needed, respecting existing params
+                    if (!params.has('userId') && CURRENT_USER_ID) {
+                        params.set('userId', CURRENT_USER_ID);
+                    }
+                    url.search = params.toString();
+                } else if (method === 'GET' && CURRENT_USER_ID) {
+                     // Add userId for GET requests if no other params exist
+                     url.search = new URLSearchParams({ userId: CURRENT_USER_ID }).toString();
+                }
+
+
+                const options = {
+                    method: method,
+                    headers: { 'Accept': 'application/json' },
+                };
+                if (body) {
+                     // Add userId to body if not present
+                     if (typeof body === 'object' && !body.userId && CURRENT_USER_ID) {
+                         body.userId = CURRENT_USER_ID;
+                     }
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(body);
+                }
+
+                showLoading();
+                systemStatusText.textContent = `Status: Transmitting...`;
+                try {
+                    const response = await fetch(url.toString(), options);
+                    lastUpdateTime.textContent = `Last Update: ${new Date().toLocaleTimeString()}`;
+                    if (!response.ok) {
+                        let errorData;
+                        try { errorData = await response.json(); }
+                        catch (e) { errorData = { detail: `HTTP error ${response.status}` }; }
+                        throw new Error(errorData.detail || `HTTP error ${response.status}`);
+                    }
+                    if (response.status === 204) return null; // Handle No Content
+                    const jsonData = await response.json();
+                    systemStatusText.textContent = `Status: Online`;
+                    return jsonData;
+                } catch (error) {
+                    console.error('API Fetch Error:', method, endpoint, error);
+                    systemStatusText.textContent = `Status: Communication Error`;
+                    showNotification(error.message || 'Network error or API unreachable.', true);
+                    throw error; // Re-throw for specific handlers
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            // --- Modal Handling ---
+            const itemDetailModal = document.getElementById('itemDetailModal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const modalTitleEl = document.getElementById('modal-title');
+            const modalBodyEl = document.getElementById('modal-body');
+
+            function openModal(title, contentHtml) {
+                if (!itemDetailModal || !modalTitleEl || !modalBodyEl) return;
+                modalTitleEl.textContent = title;
+                modalBodyEl.innerHTML = contentHtml; // Inject content
+                itemDetailModal.style.display = 'flex'; // Show modal
+                 // Add listeners for buttons inside the modal if needed (e.g., retrieve button)
+                 setupModalActionButtons();
+            }
+
+            function closeModal() {
+                if (itemDetailModal) itemDetailModal.style.display = 'none';
+                modalBodyEl.innerHTML = ''; // Clear content
+                currentModalData = null; // Clear associated data
+            }
+
+            if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+            // Close modal if clicking outside the content area
+             if (itemDetailModal) {
+                 itemDetailModal.addEventListener('click', (event) => {
+                     if (event.target === itemDetailModal) closeModal();
+                 });
+             }
+
+              /** Add listeners to buttons potentially added inside the modal body */
+              function setupModalActionButtons() {
+                   const retrieveBtn = document.getElementById('modal-retrieve-btn');
+                   if (retrieveBtn && currentModalData) {
+                        retrieveBtn.onclick = async () => { // Use onclick for dynamically added elements
+                           if (!currentModalData?.item?.itemId) {
+                               showNotification('Item ID missing for retrieval.', true);
+                               return;
+                           }
+                           showNotification(`Logging retrieval for ${currentModalData.item.itemId}...`);
+                            try {
+                               // In a real scenario, this might call a specific /retrieve endpoint
+                               // For now, we just log it
+                               await fetchApi('POST', '/logs', {
+                                   action: 'Item Retrieved',
+                                   details: `Retrieved item ${currentModalData.item.itemId} (${currentModalData.item.name}) from ${currentModalData.item.containerId}. User: ${CURRENT_USER_ID}`
+                               });
+                               showNotification(`Item ${currentModalData.item.itemId} marked as retrieved.`, false);
+                               closeModal();
+                               // Optional: Refresh the view where the item was displayed (e.g., inventory or search)
+                           } catch (error) {
+                               showNotification(`Failed to log retrieval: ${error.message}`, true);
+                           }
+                       };
+                   }
+                    // Add listeners for other potential modal buttons here
+               }
+
+
+             // --- Core Application Logic ---
+
+            /** Handles clicks on the main navigation links */
+            function handleNavigation(event) {
+                event.preventDefault();
+                const targetId = event.target.dataset.target;
+                if (!targetId) return;
+
+                // Update active link
+                navLinks.forEach(link => link.classList.remove('active'));
+                event.target.classList.add('active');
+
+                // Update panel title
+                contentPanelTitle.textContent = event.target.textContent;
+
+                // Show target content, hide others
+                mainTabContents.forEach(content => {
+                    content.style.display = content.id === targetId ? 'block' : 'none';
+                    content.classList.toggle('active', content.id === targetId); // Use class for clarity too
                 });
-                
-                // Show corresponding tab content
-                const index = Array.from(this.parentElement.children).indexOf(this);
-                document.querySelectorAll('.tab-content')[index].classList.add('active');
-            });
-        });
-        
-        // Modal functionality
-        document.querySelectorAll('.container-item').forEach(item => {
-            item.addEventListener('click', function() {
-                document.getElementById('itemModal').style.display = 'flex';
-            });
-        });
-        
-        document.querySelectorAll('.close-modal').forEach(close => {
-            close.addEventListener('click', function() {
-                this.closest('.modal').style.display = 'none';
-            });
-        });
-        
-        // Close modal when clicking outside
-        window.addEventListener('click', function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
+
+                 // Trigger data loading for the activated panel
+                 loadDataForTab(targetId);
             }
-        });
-        
-        // Update current date
-        document.getElementById('current-date').textContent = new Date().toISOString().split('T')[0];
+
+             /** Load initial data based on the active tab ID */
+             function loadDataForTab(tabId) {
+                 console.log("Loading data for:", tabId);
+                 // Clear previous status/results in the main content area if needed
+                 const activeContent = document.getElementById(tabId);
+                 activeContent?.querySelectorAll('.status-message').forEach(el => hideStatus(el.id));
+                 activeContent?.querySelectorAll('.results-area').forEach(el => hideResults(el.id));
+
+
+                 switch (tabId) {
+                     case 'dashboard-content':
+                         loadDashboardData();
+                         break;
+                     case 'placement-content':
+                         // No initial data load needed, user interacts with form
+                         break;
+                     case 'inventory-content':
+                         // Load the default sub-tab (e.g., Placed Items)
+                          const activeSubTab = activeContent.querySelector('.inventory-subtab.active');
+                          if (activeSubTab) {
+                              loadInventoryData(activeSubTab.dataset.subtarget);
+                          } else {
+                               loadInventoryData('inventory-placed-items'); // Default
+                          }
+                         break;
+                     case 'search-content':
+                         // No initial data load needed
+                         break;
+                     case 'waste-content':
+                         identifyWaste(); // Auto-identify waste when panel loads
+                         break;
+                    case 'logs-content':
+                         loadLogs();
+                         break;
+                    case 'import-export-content':
+                         // No initial load needed
+                         break;
+                     default:
+                         console.warn("No data load function defined for tab:", tabId);
+                 }
+             }
+
+            // --- Data Loading Functions ---
+
+            /** Load Dashboard Data */
+            async function loadDashboardData() {
+                 console.log('Loading Dashboard Data...');
+                 showStatus('dashboard-status', 'Loading dashboard overview...', false);
+                 try {
+                    // Parallel fetch: Containers and Placed Items
+                    const [containers, placedItems] = await Promise.all([
+                        fetchApi('GET', '/containers'),
+                        fetchApi('GET', '/placed_items') // Assuming endpoint exists
+                    ]);
+
+                    // Populate container dropdown
+                    const containerSelect = document.getElementById('dashboard-container-select');
+                    containerSelect.innerHTML = '<option value="">-- Select Container --</option>'; // Clear old options
+                    containers.forEach(c => {
+                        const option = document.createElement('option');
+                        option.value = c.containerId;
+                        option.textContent = `${c.containerId} (${c.zone})`;
+                        containerSelect.appendChild(option);
+                    });
+
+                     // Calculate and display inventory summary
+                     displayInventorySummary(containers, placedItems);
+
+                     // Clear visualization initially
+                     updateContainerVisualization(null, []); // Pass null containerId initially
+
+                     hideStatus('dashboard-status');
+                 } catch (error) {
+                     showStatus('dashboard-status', `Failed to load dashboard: ${error.message}`, true);
+                 }
+             }
+
+              /** Display Inventory Summary Table */
+              function displayInventorySummary(containers, placedItems) {
+                 const summaryTableBody = document.getElementById('dashboard-inventory-summary-table')?.querySelector('tbody');
+                 if (!summaryTableBody) return;
+                 summaryTableBody.innerHTML = ''; // Clear existing
+
+                 const summary = {}; // { zone: { total: 0, priority: 0, ids: [] } }
+
+                 containers.forEach(c => {
+                     if (!summary[c.zone]) {
+                         summary[c.zone] = { total: 0, priority: 0, containerIds: [] };
+                     }
+                      summary[c.zone].containerIds.push(c.containerId);
+                 });
+
+                 placedItems.forEach(item => {
+                      // Find the zone for this item's container
+                      let itemZone = null;
+                      for (const zone in summary) {
+                          if (summary[zone].containerIds.includes(item.containerId)) {
+                              itemZone = zone;
+                              break;
+                          }
+                      }
+                      if (itemZone) {
+                          summary[itemZone].total++;
+                          if (item.priority >= 1 && item.priority <= 3) { // Assuming P1-3 are high priority
+                              summary[itemZone].priority++;
+                          }
+                      }
+                 });
+
+                 // Render summary table
+                 for (const zone in summary) {
+                      const data = summary[zone];
+                      const row = summaryTableBody.insertRow();
+                      row.insertCell(0).textContent = zone;
+                      row.insertCell(1).textContent = data.total;
+                      row.insertCell(2).textContent = data.priority;
+                      row.insertCell(3).textContent = `??%`; // Space used calculation is complex, placeholder
+                      // Status logic (example)
+                       let statusText = 'Optimal';
+                       let badgeClass = 'badge-low';
+                      // Add logic based on total items or %full if calculated
+                      // if (percentFull > 85) { statusText = 'Near Capacity'; badgeClass = 'badge-high'; }
+                      // else if (percentFull > 70) { statusText = 'Filling Up'; badgeClass = 'badge-medium'; }
+                      row.insertCell(4).innerHTML = `<span class="badge ${badgeClass}">${statusText}</span>`;
+                 }
+                 if (Object.keys(summary).length === 0) {
+                     summaryTableBody.innerHTML = '<tr><td colspan="5">No container data available.</td></tr>';
+                 }
+            }
+
+            /** Update Container Visualization */
+            function updateContainerVisualization(containerId, allPlacedItems) {
+                 const grid = document.getElementById('dashboard-container-grid');
+                 if (!grid) return;
+                 grid.innerHTML = ''; // Clear previous items
+
+                 if (!containerId) {
+                     grid.innerHTML = '<div style="padding: 10px; text-align: center;">Select a container to visualize.</div>';
+                     return;
+                 }
+
+                 const itemsInContainer = allPlacedItems.filter(item => item.containerId === containerId);
+                  if (itemsInContainer.length === 0) {
+                     grid.innerHTML = '<div style="padding: 10px; text-align: center;">Container is empty.</div>';
+                     return;
+                  }
+
+                  // Find container dimensions (needs container data)
+                  // Let's assume fixed dimensions for visualization for now, or fetch them
+                  const containerWidth = 100; // Example arbitrary units
+                  const containerDepth = 100;
+                  const containerHeight = 100; // Not directly visualized in 2D grid
+
+                  itemsInContainer.forEach(item => {
+                      const itemEl = document.createElement('div');
+                      itemEl.classList.add('container-item');
+                      itemEl.classList.add(`priority-${item.priority}`); // Add priority class
+                      itemEl.title = `${item.itemId}: ${item.name}\nPriority: ${item.priority}\nPos: (${item.startW}, ${item.startD}, ${item.startH})\nSize: ${item.width}x${item.depth}x${item.height}`;
+
+                       // Calculate relative position and size for visualization
+                       // This needs scaling based on actual container dimensions vs grid size
+                       // Simple scaling example:
+                       const left = (item.startW / containerWidth) * 100;
+                       const top = (item.startD / containerDepth) * 100; // Use depth for Y position
+                       const width = (item.width / containerWidth) * 100;
+                       const height = (item.depth / containerDepth) * 100; // Use depth for height in 2D viz
+
+                       itemEl.style.left = `${left}%`;
+                       itemEl.style.top = `${top}%`;
+                       itemEl.style.width = `${Math.max(width, 5)}%`; // Min width for visibility
+                       itemEl.style.height = `${Math.max(height, 5)}%`; // Min height
+                       itemEl.style.zIndex = `${10 + Math.floor(item.startH)}`; // Basic depth simulation
+
+                      itemEl.textContent = item.itemId; // Show ID briefly
+                       // Add click listener to show details in modal
+                       itemEl.addEventListener('click', () => showItemDetailModal(item.itemId));
+
+                      grid.appendChild(itemEl);
+                  });
+            }
+
+            /** Show Item Details in Modal */
+            async function showItemDetailModal(itemId) {
+                openModal('Loading Item Details...', '<div class="spinner" style="margin: 20px auto;"></div>');
+                 try {
+                     // Need placed item details and definition details
+                     const [placedItemData, definitionData, searchResult] = await Promise.all([
+                         fetchApi('GET', `/placed_items/${itemId}`), // Assuming endpoint exists by ID
+                         fetchApi('GET', `/items/${itemId}`),       // Assuming endpoint exists by ID
+                         fetchApi('GET', '/search', null, new URLSearchParams({ itemId: itemId })) // Fetch retrieval steps
+                     ]);
+
+                     if (!placedItemData || !definitionData || !searchResult || !searchResult.results || searchResult.results.length === 0) {
+                         throw new Error('Required item data not found.');
+                     }
+                     const result = searchResult.results[0]; // Contains retrieval info
+                     currentModalData = result; // Store data for potential actions
+
+                     let modalHtml = `
+                        <div class="form-group">
+                             <label>Item ID:</label> <input type="text" value="${definitionData.itemId}" readonly>
+                        </div>
+                        <div class="flex-row">
+                           <div class="form-group">
+                             <label>Name:</label> <input type="text" value="${definitionData.name}" readonly>
+                            </div>
+                           <div class="form-group">
+                              <label>Priority:</label> <input type="text" value="${definitionData.priority}" readonly>
+                           </div>
+                        </div>
+                         <div class="flex-row">
+                           <div class="form-group">
+                                <label>Defined Size (W×D×H):</label> <input type="text" value="${definitionData.width}×${definitionData.depth}×${definitionData.height}" readonly>
+                           </div>
+                           <div class="form-group">
+                              <label>Placed Size (W×D×H):</label> <input type="text" value="${placedItemData.width}×${placedItemData.depth}×${placedItemData.height}" readonly>
+                           </div>
+                        </div>
+                         <div class="flex-row">
+                           <div class="form-group">
+                              <label>Mass (kg):</label> <input type="text" value="${definitionData.mass}" readonly>
+                           </div>
+                           <div class="form-group">
+                              <label>Expiry:</label> <input type="text" value="${definitionData.expiryDate || 'N/A'}" readonly>
+                           </div>
+                           </div>
+                        <div class="flex-row">
+                           <div class="form-group">
+                             <label>Location:</label> <input type="text" value="${placedItemData.containerId} (${definitionData.preferredZone || 'Any'})" readonly>
+                           </div>
+                           <div class="form-group">
+                              <label>Coords (W,D,H):</label> <input type="text" value="(${placedItemData.startW}, ${placedItemData.startD}, ${placedItemData.startH})" readonly>
+                           </div>
+                        </div>
+                         <div class="flex-row">
+                           <div class="form-group">
+                             <label>Usage Limit:</label> <input type="text" value="${definitionData.usageLimit || 'N/A'}" readonly>
+                           </div>
+                             <div class="form-group">
+                               <label>Retrieval Steps:</label> <input type="text" value="${result.retrieval_steps}" readonly>
+                            </div>
+                        </div>
+
+                         <h4>Retrieval Instructions (${result.retrieval_steps} steps):</h4>
+                         <div class="steps-container">`;
+
+                     if (result.retrieval_instructions.length > 0) {
+                         result.retrieval_instructions.forEach((step, index) => {
+                             modalHtml += `<div class="step"><strong>Step ${index + 1}:</strong> Move item <strong>${step.move}</strong> from container ${step.from_container}</div>`;
+                         });
+                      } else if (result.retrieval_steps === 0) {
+                            modalHtml += `<div class="step">Item is directly accessible.</div>`;
+                      } else {
+                           modalHtml += `<div class="step">Error calculating steps.</div>`;
+                      }
+                     modalHtml += `</div>`; // End steps-container
+
+                      modalHtml += `<div style="display: flex; gap: 10px; margin-top: 20px;">
+                           <button id="modal-retrieve-btn">Log Item Retrieved</button>
+                          </div>`;
+
+                     openModal(`Details: ${definitionData.itemId} - ${definitionData.name}`, modalHtml);
+
+                 } catch (error) {
+                     openModal('Error Loading Details', `<p class="status-message error">Could not load details for ${itemId}: ${error.message}</p>`);
+                 }
+            }
+
+
+            /** Load data for Inventory tabs */
+            async function loadInventoryData(subTargetId) {
+                console.log("Loading inventory sub-tab:", subTargetId);
+                 const statusId = 'inventory-status';
+                 hideStatus(statusId);
+                 showStatus(statusId, `Loading ${subTargetId}...`);
+
+                 let tableBodyId = '';
+                 let endpoint = '';
+                 let columns = 0;
+
+                 switch (subTargetId) {
+                     case 'inventory-placed-items':
+                         tableBodyId = 'inventory-placed-table-body';
+                         endpoint = '/placed_items';
+                         columns = 6;
+                         break;
+                     case 'inventory-item-definitions':
+                         tableBodyId = 'inventory-definitions-table-body';
+                         endpoint = '/items'; // Assuming /api/items gets definitions
+                         columns = 8;
+                         break;
+                    case 'inventory-containers':
+                         tableBodyId = 'inventory-containers-table-body';
+                         endpoint = '/containers';
+                         columns = 5;
+                         break;
+                    default:
+                        showStatus(statusId, 'Invalid inventory view selected.', true);
+                        return;
+                 }
+
+                 const tableBody = document.getElementById(tableBodyId);
+                 if (!tableBody) {
+                     showStatus(statusId, 'Table body not found for rendering.', true);
+                     return;
+                 }
+                 tableBody.innerHTML = `<tr><td colspan="${columns}">Loading...</td></tr>`; // Show loading in table
+
+                 try {
+                    const data = await fetchApi('GET', endpoint); // Fetch data for the specific sub-tab
+                    tableBody.innerHTML = ''; // Clear loading row
+
+                    if (!data || data.length === 0) {
+                         tableBody.innerHTML = `<tr><td colspan="${columns}">No data found.</td></tr>`;
+                         hideStatus(statusId);
+                         return;
+                    }
+
+                    // Populate table based on subTargetId
+                     switch (subTargetId) {
+                         case 'inventory-placed-items':
+                             data.forEach(item => {
+                                 const row = tableBody.insertRow();
+                                 row.insertCell(0).textContent = item.itemId;
+                                 row.insertCell(1).textContent = item.name;
+                                 row.insertCell(2).textContent = item.containerId;
+                                 row.insertCell(3).textContent = item.priority;
+                                 row.insertCell(4).textContent = `(${item.startW}, ${item.startD}, ${item.startH})`;
+                                 row.insertCell(5).textContent = `(${item.width}×${item.depth}×${item.height})`;
+                                 row.style.cursor = 'pointer'; // Make row clickable
+                                 row.onclick = () => showItemDetailModal(item.itemId); // Show details on click
+                             });
+                             break;
+                         case 'inventory-item-definitions':
+                              data.forEach(item => {
+                                 const row = tableBody.insertRow();
+                                 row.insertCell(0).textContent = item.itemId;
+                                 row.insertCell(1).textContent = item.name;
+                                 row.insertCell(2).textContent = `(${item.width}×${item.depth}×${item.height})`;
+                                 row.insertCell(3).textContent = item.mass;
+                                 row.insertCell(4).textContent = item.priority;
+                                 row.insertCell(5).textContent = item.expiryDate || 'N/A';
+                                 row.insertCell(6).textContent = item.usageLimit || 'N/A';
+                                 row.insertCell(7).textContent = item.preferredZone || 'Any';
+                             });
+                             break;
+                        case 'inventory-containers':
+                             // Fetch placed items again to count items per container
+                             const placedItems = await fetchApi('GET', '/placed_items');
+                             const itemsPerContainer = placedItems.reduce((acc, item) => {
+                                 acc[item.containerId] = (acc[item.containerId] || 0) + 1;
+                                 return acc;
+                             }, {});
+
+                             data.forEach(cont => {
+                                 const row = tableBody.insertRow();
+                                 row.insertCell(0).textContent = cont.containerId;
+                                 row.insertCell(1).textContent = cont.zone;
+                                 row.insertCell(2).textContent = `(${cont.width}×${cont.depth}×${cont.height})`;
+                                 row.insertCell(3).textContent = itemsPerContainer[cont.containerId] || 0;
+                                 row.insertCell(4).textContent = `??%`; // % Full needs calculation
+                             });
+                             break;
+                     }
+                     hideStatus(statusId);
+
+                 } catch (error) {
+                     showStatus(statusId, `Failed to load data: ${error.message}`, true);
+                     tableBody.innerHTML = `<tr><td colspan="${columns}">Error loading data.</td></tr>`;
+                 }
+             }
+
+
+             /** Load Logs */
+             async function loadLogs() {
+                 const tableBody = document.getElementById('logs-table-body');
+                 const statusId = 'logs-status';
+                 if (!tableBody) return;
+
+                 hideStatus(statusId);
+                 tableBody.innerHTML = '<tr><td colspan="4">Loading logs...</td></tr>';
+
+                  try {
+                    const params = new URLSearchParams({ skip: '0', limit: '200' }); // Load latest 200 logs
+                    const logs = await fetchApi('GET', '/logs', null, params);
+
+                    tableBody.innerHTML = ''; // Clear loading message
+
+                    if (!logs || logs.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="4">No logs found.</td></tr>';
+                    } else {
+                        logs.forEach(log => {
+                            const row = tableBody.insertRow();
+                            row.insertCell(0).textContent = new Date(log.timestamp).toLocaleString();
+                            row.insertCell(1).textContent = log.userId;
+                            row.insertCell(2).textContent = log.action;
+                            row.insertCell(3).textContent = log.details || '';
+                        });
+                    }
+                 } catch (error) {
+                     showStatus(statusId, `Failed to load logs: ${error.message}`, true);
+                     tableBody.innerHTML = `<tr><td colspan="4">Error loading logs.</td></tr>`;
+                 }
+             }
+
+              /** Identify Waste Items */
+              async function identifyWaste() {
+                 const tableBody = document.getElementById('waste-items-table-body');
+                 const statusId = 'waste-identify-status';
+                 if (!tableBody) return;
+
+                 hideStatus(statusId);
+                 showStatus(statusId, 'Identifying waste items...');
+                 tableBody.innerHTML = '<tr><td colspan="4">Identifying...</td></tr>';
+                 const identifyBtn = document.getElementById('identify-waste-btn');
+                 if(identifyBtn) identifyBtn.disabled = true;
+
+                 try {
+                    // GET /api/waste/identify expects userId as query param
+                    const wasteItems = await fetchApi('GET', '/waste/identify');
+                    tableBody.innerHTML = ''; // Clear loading message
+
+                    if (!wasteItems || wasteItems.length === 0) {
+                         showStatus(statusId, 'No waste items identified.', false);
+                        tableBody.innerHTML = '<tr><td colspan="4">No waste items found.</td></tr>';
+                    } else {
+                        showStatus(statusId, `Identified ${wasteItems.length} waste items.`, false);
+                        wasteItems.forEach(item => {
+                            const row = tableBody.insertRow();
+                            row.insertCell(0).textContent = item.itemId;
+                            row.insertCell(1).textContent = item.name;
+                            row.insertCell(2).textContent = item.containerId;
+                            // Determine reason (requires expiry/usage info passed from backend)
+                            let reason = '';
+                            if (item.days_to_expiry !== null && item.days_to_expiry < 0) {
+                                reason = `Expired (${Math.abs(item.days_to_expiry).toFixed(0)} days ago)`;
+                            } // Add logic for usage limit if available
+                            row.insertCell(3).textContent = reason || 'Usage/Other';
+                         });
+                    }
+                 } catch (error) {
+                     showStatus(statusId, `Failed to identify waste: ${error.message}`, true);
+                     tableBody.innerHTML = `<tr><td colspan="4">Error identifying waste.</td></tr>`;
+                 } finally {
+                      if(identifyBtn) identifyBtn.disabled = false;
+                 }
+             }
+
+            // --- Event Listeners ---
+
+            // Main Navigation
+            navLinks.forEach(link => link.addEventListener('click', handleNavigation));
+
+             // Refresh Data Button (Dashboard)
+             const refreshDataBtn = document.getElementById('refresh-data-btn');
+             if (refreshDataBtn) {
+                 refreshDataBtn.addEventListener('click', () => {
+                     // Reload data for the currently active main tab
+                     const activeTab = document.querySelector('.nav-link.active');
+                     if (activeTab) {
+                         loadDataForTab(activeTab.dataset.target);
+                         showNotification("Data refresh initiated.");
+                     }
+                 });
+             }
+
+             // Dashboard Container Selector Change
+            const dashboardContainerSelect = document.getElementById('dashboard-container-select');
+             if (dashboardContainerSelect) {
+                 dashboardContainerSelect.addEventListener('change', async (event) => {
+                     const selectedContainerId = event.target.value;
+                      const grid = document.getElementById('dashboard-container-grid');
+                      if(grid) grid.innerHTML = '<div style="padding: 10px; text-align: center;">Loading visualization...</div>';
+                      if (selectedContainerId) {
+                         try {
+                             // We need all placed items to filter
+                             const allPlacedItems = await fetchApi('GET', '/placed_items');
+                             updateContainerVisualization(selectedContainerId, allPlacedItems);
+                         } catch (error) {
+                             if(grid) grid.innerHTML = '<div style="padding: 10px; text-align: center; color: red;">Error loading visualization.</div>';
+                             showNotification(`Failed to load visualization: ${error.message}`, true);
+                         }
+                      } else {
+                          updateContainerVisualization(null, []); // Clear visualization
+                      }
+                 });
+             }
+
+             // Placement Form Submission
+              const placementForm = document.getElementById('placement-form');
+             if (placementForm) {
+                 placementForm.addEventListener('submit', async (event) => {
+                     event.preventDefault();
+                     const itemId = document.getElementById('placement-item-id').value.trim();
+                     const statusId = 'placement-status';
+                     const resultsId = 'placement-results';
+                     hideStatus(statusId);
+                     hideResults(resultsId);
+
+                     if (!itemId) {
+                         showStatus(statusId, 'Please enter an Item ID.', true);
+                         return;
+                     }
+                     showStatus(statusId, 'Finding placement...');
+                     const button = placementForm.querySelector('button');
+                     button.disabled = true;
+                     try {
+                         // POST /api/placement expects { itemId, userId }
+                         const data = await fetchApi('POST', '/placement', { itemId: itemId }); // userId added by fetchApi
+                         showStatus(statusId, data.message || 'Placement suggested.', false);
+                         showResults(resultsId, data.placed_item); // Display placed_item object
+                     } catch (error) {
+                         showStatus(statusId, `Placement Failed: ${error.message}`, true);
+                     } finally {
+                          button.disabled = false;
+                     }
+                 });
+             }
+
+              // Search Form Submission
+             const searchForm = document.getElementById('search-form');
+              if (searchForm) {
+                  searchForm.addEventListener('submit', async (event) => {
+                      event.preventDefault();
+                      const searchTerm = document.getElementById('search-term').value.trim();
+                      const statusId = 'search-status';
+                      const resultsId = 'search-results';
+                      const retrieveBtn = document.getElementById('execute-retrieval-btn');
+
+                      hideStatus(statusId);
+                      hideResults(resultsId);
+                      if(retrieveBtn) retrieveBtn.style.display = 'none'; // Hide retrieve button initially
+                      currentModalData = null; // Clear previous search data for modal
+
+                      if (!searchTerm) {
+                          showStatus(statusId, 'Please enter an Item ID or Name.', true);
+                          return;
+                      }
+                      showStatus(statusId, 'Searching...');
+                      const button = searchForm.querySelector('button');
+                      button.disabled = true;
+                      try {
+                          const params = new URLSearchParams();
+                          // Simple check for ID vs Name
+                          if (searchTerm.match(/^ITEM\d+$/i)) { // Basic ID pattern
+                              params.append('itemId', searchTerm);
+                          } else {
+                               params.append('itemName', searchTerm);
+                          }
+                           // userId added by fetchApi
+
+                          const data = await fetchApi('GET', '/search', null, params);
+                          if (!data.results || data.results.length === 0) {
+                               showStatus(statusId, 'Item not found.', false); // Not an error, just not found
+                          } else {
+                                const bestResult = data.results[0];
+                                currentModalData = bestResult; // Store for potential retrieval action
+                                showStatus(statusId, `Found best match for '${searchTerm}'.`, false);
+                                showResults(resultsId, bestResult); // Display the best result details
+                                if(retrieveBtn) retrieveBtn.style.display = 'inline-block'; // Show retrieve button
+                          }
+                      } catch (error) {
+                           showStatus(statusId, `Search Failed: ${error.message}`, true);
+                      } finally {
+                           button.disabled = false;
+                      }
+                  });
+              }
+
+              // Execute Retrieval Button (after search)
+              const executeRetrievalBtn = document.getElementById('execute-retrieval-btn');
+              if (executeRetrievalBtn) {
+                    executeRetrievalBtn.addEventListener('click', async () => {
+                        if (!currentModalData || !currentModalData.item || !currentModalData.item.itemId) {
+                            showNotification('No item selected or item data missing.', true);
+                            return;
+                        }
+                        const itemToRetrieve = currentModalData.item;
+                        showNotification(`Logging retrieval for ${itemToRetrieve.itemId}...`);
+                        executeRetrievalBtn.disabled = true;
+                        try {
+                           // Ideally, backend would handle removing item AND logging
+                           // Simulating just the logging part here
+                           await fetchApi('POST', '/logs', {
+                               action: 'Item Retrieved',
+                               details: `Retrieved item ${itemToRetrieve.itemId} (${itemToRetrieve.name}) from ${itemToRetrieve.containerId}. User: ${CURRENT_USER_ID}. Steps: ${currentModalData.retrieval_steps}.`
+                           });
+                           showNotification(`Item ${itemToRetrieve.itemId} marked as retrieved.`, false);
+                           // Clear search results maybe?
+                           hideResults('search-results');
+                           executeRetrievalBtn.style.display = 'none';
+                           currentModalData = null;
+                        } catch(error) {
+                             showNotification(`Failed to log retrieval: ${error.message}`, true);
+                        } finally {
+                            executeRetrievalBtn.disabled = false;
+                        }
+                    });
+              }
+
+
+               // Inventory Sub-Tabs
+               document.querySelectorAll('.inventory-subtab').forEach(subTab => {
+                   subTab.addEventListener('click', (event) => {
+                       const targetSubId = event.target.dataset.subtarget;
+                       if (!targetSubId) return;
+
+                       // Update active sub-tab
+                       document.querySelectorAll('.inventory-subtab').forEach(el => el.classList.remove('active'));
+                       event.target.classList.add('active');
+
+                       // Show target sub-content, hide others within inventory panel
+                       document.querySelectorAll('.inventory-subtab-content').forEach(content => {
+                            content.style.display = content.id === targetSubId ? 'block' : 'none';
+                            content.classList.toggle('active', content.id === targetSubId);
+                       });
+                       loadInventoryData(targetSubId); // Load data for the clicked sub-tab
+                   });
+               });
+
+
+               // Waste Identification Button
+               const identifyWasteBtn = document.getElementById('identify-waste-btn');
+               if (identifyWasteBtn) {
+                   identifyWasteBtn.addEventListener('click', identifyWaste);
+               }
+
+                // Waste Plan Form Submission
+               const wastePlanForm = document.getElementById('waste-plan-form');
+               if (wastePlanForm) {
+                   wastePlanForm.addEventListener('submit', async (event) => {
+                       event.preventDefault();
+                       const formData = new FormData(wastePlanForm);
+                       const requestBody = {
+                           undocking_container_id: formData.get('undocking_container_id'),
+                           max_weight: parseFloat(formData.get('max_weight')),
+                           // userId added by fetchApi
+                       };
+                       const statusId = 'waste-plan-status';
+                       const resultsId = 'waste-plan-results';
+
+                       hideStatus(statusId);
+                       hideResults(resultsId);
+                       showStatus(statusId, 'Generating waste return plan...');
+                       const button = wastePlanForm.querySelector('button');
+                       button.disabled = true;
+
+                       try {
+                           const plan = await fetchApi('POST', '/waste/plan_return', requestBody);
+                           showStatus(statusId, `Plan generated: ${plan.total_items} items, ${plan.total_weight.toFixed(2)} kg.`, false);
+                           showResults(resultsId, plan);
+                       } catch (error) {
+                           showStatus(statusId, `Failed to generate plan: ${error.message}`, true);
+                       } finally {
+                            button.disabled = false;
+                       }
+                   });
+               }
+
+               // Export Data Button
+               const exportDataBtn = document.getElementById('export-data-btn');
+                if (exportDataBtn) {
+                    exportDataBtn.addEventListener('click', async () => {
+                         const statusId = 'import-export-status';
+                         const resultsId = 'export-results-area';
+                         hideStatus(statusId);
+                         hideResults(resultsId);
+                         showStatus(statusId, 'Exporting data...');
+                         exportDataBtn.disabled = true;
+
+                         try {
+                             const data = await fetchApi('GET', '/export');
+                             showStatus(statusId, 'Data exported successfully.', false);
+                             showResults(resultsId, data);
+                         } catch (error) {
+                             showStatus(statusId, `Export Failed: ${error.message}`, true);
+                         } finally {
+                              exportDataBtn.disabled = false;
+                         }
+                    });
+                }
+
+                // Import Form Submission
+                const importForm = document.getElementById('import-form');
+                if (importForm) {
+                     importForm.addEventListener('submit', async (event) => {
+                        event.preventDefault();
+                        const statusId = 'import-export-status';
+                        hideStatus(statusId);
+                        showStatus(statusId, 'Importing data...');
+                        const button = importForm.querySelector('button');
+                        button.disabled = true;
+
+                        let items = [];
+                        let containers = [];
+                        try {
+                            const itemsJson = document.getElementById('import-items-json').value.trim();
+                            const containersJson = document.getElementById('import-containers-json').value.trim();
+
+                            if (itemsJson) items = JSON.parse(itemsJson); else items = []; // Default to empty array
+                            if (containersJson) containers = JSON.parse(containersJson); else containers = [];
+
+                            if (!Array.isArray(items) || !Array.isArray(containers)) {
+                                 throw new Error("Input must be valid JSON arrays (even if empty: []).");
+                            }
+
+                            const requestBody = { items: items, containers: containers }; // userId added by fetchApi
+
+                             const response = await fetchApi('POST', '/import', requestBody);
+                             let message = `Import complete. Items: ${response.items_created}, Containers: ${response.containers_created}.`;
+                             let isError = false;
+                             if (response.errors && response.errors.length > 0) {
+                                message += ` Errors: ${response.errors.length}. Check console for details.`;
+                                console.error("Import errors:", response.errors);
+                                isError = true; // Mark as error if any errors occurred
+                             }
+                             showStatus(statusId, message, isError);
+                             // Optionally clear textareas on success
+                             if (!isError) {
+                                 document.getElementById('import-items-json').value = '';
+                                 document.getElementById('import-containers-json').value = '';
+                             }
+
+                        } catch (error) {
+                            showStatus(statusId, `Import Failed: ${error.message}`, true);
+                        } finally {
+                            button.disabled = false;
+                        }
+                     });
+                 }
+
+                 // Simulation Button
+                 const simulateBtn = document.getElementById('simulate-btn');
+                 if (simulateBtn) {
+                     simulateBtn.addEventListener('click', async () => {
+                         const durationInput = document.getElementById('simulate-duration');
+                         const duration = parseFloat(durationInput.value);
+                         const activeContent = document.querySelector('.main-tab-content.active'); // Find current tab
+                         const statusId = activeContent?.id ? `${activeContent.id}-status` : 'dashboard-status'; // Find status in current tab or default
+                         const resultsId = ''; // Where to display sim results? Add dedicated area if needed.
+
+                         if (isNaN(duration) || duration <= 0) {
+                            showNotification('Please enter a valid positive duration for simulation.', true);
+                            return;
+                         }
+
+                         // Use general notification as there's no dedicated sim result area yet
+                         showNotification(`Running simulation for ${duration} days...`);
+                         simulateBtn.disabled = true;
+                         const simControls = document.getElementById('simulation-controls');
+                         const otherButtons = simControls.querySelectorAll('button:not(#simulate-btn)');
+                         otherButtons.forEach(btn => btn.disabled = true);
+
+
+                         try {
+                             const result = await fetchApi('POST', '/simulate', { duration_days: duration });
+                             showNotification(`Simulation complete. ${result.events_occurred?.length || 0} events occurred. Check logs.`, false);
+                             // Update date display if backend returns final date?
+                             // Or just add duration to current date display
+                             const currentDate = new Date(currentDateEl.textContent);
+                             currentDate.setDate(currentDate.getDate() + duration);
+                             currentDateEl.textContent = currentDate.toISOString().split('T')[0];
+
+                             // Refresh relevant data (like dashboard or waste) after simulation
+                             loadDataForTab('dashboard-content'); // Refresh dashboard after sim
+
+
+                         } catch (error) {
+                             showNotification(`Simulation Failed: ${error.message}`, true);
+                         } finally {
+                              simulateBtn.disabled = false;
+                              otherButtons.forEach(btn => btn.disabled = false);
+                         }
+                     });
+                 }
+
+
+            // --- Initial Load ---
+            function initializeApp() {
+                userIdStatus.textContent = `User: ${CURRENT_USER_ID}`;
+                 // Set initial date display
+                 currentDateEl.textContent = new Date().toISOString().split('T')[0];
+                 // Set update time
+                 lastUpdateTime.textContent = `Last Update: ${new Date().toLocaleTimeString()}`;
+                // Activate the first navigation link and load its content
+                const firstNavLink = document.querySelector('.nav-link');
+                if (firstNavLink) {
+                    handleNavigation({ target: firstNavLink, preventDefault: () => {} });
+                }
+            }
+
+            initializeApp();
+
+        }); // End DOMContentLoaded
     </script>
+
 </body>
 </html>

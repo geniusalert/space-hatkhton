@@ -1,125 +1,169 @@
-import sqlite3
-from typing import Optional, List, Dict, Any
-from fastapi import Depends
-from .schemas import Item, Container, Log
+# backend/app/crud.py
 
-# Connection pool using FastAPI dependency injection
-def get_db():
-    conn = sqlite3.connect("cargo.db")
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from typing import List, Optional, Tuple
 
-# --- Item CRUD Operations ---
-def create_item(item: Item, db: sqlite3.Connection = Depends(get_db)) -> bool:
-    """Create a new item in the database."""
-    cursor = db.cursor()
+# Assuming models and schemas are defined in these files
+# Adjust imports based on your actual project structure
+from . import models, schemas
+
+# --- Item Definition CRUD ---
+
+def get_item_definition(db: Session, item_id: str) -> Optional[models.ItemDefinition]:
+    """Gets the original definition/template of an item by its ID."""
+    return db.query(models.ItemDefinition).filter(models.ItemDefinition.itemId == item_id).first()
+
+def get_item_definition_by_name(db: Session, item_name: str) -> Optional[models.ItemDefinition]:
+    """Gets the original definition/template of an item by its name."""
+    return db.query(models.ItemDefinition).filter(models.ItemDefinition.name == item_name).first()
+
+def get_all_item_definitions(db: Session, skip: int = 0, limit: int = 100) -> List[models.ItemDefinition]:
+    """Gets all item definitions (templates)."""
+    return db.query(models.ItemDefinition).offset(skip).limit(limit).all()
+
+def create_item_definition(db: Session, item: schemas.ItemCreate) -> models.ItemDefinition:
+    """Creates a new item definition (template)."""
+    db_item = models.ItemDefinition(**item.model_dump())
+    db.add(db_item)
     try:
-        cursor.execute("""
-            INSERT INTO items (itemId, name, width, depth, height, mass, priority, expiryDate, usageLimit, preferredZone, 
-                              containerId, startW, startD, startH, endW, endD, endH)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (item.itemId, item.name, item.width, item.depth, item.height, item.mass, item.priority, item.expiryDate,
-              item.usageLimit, item.preferredZone, item.containerId if item.containerId else None,
-              item.startW if item.startW else None, item.startD if item.startD else None, item.startH if item.startH else None,
-              item.endW if item.endW else None, item.endD if item.endD else None, item.endH if item.endH else None))
+        db.commit()
+        db.refresh(db_item)
+        return db_item
+    except IntegrityError:
+        db.rollback()
+        raise ValueError(f"Item definition with ID '{item.itemId}' or Name '{item.name}' may already exist.")
+
+
+# --- Container CRUD ---
+
+def get_container_by_id(db: Session, container_id: str) -> Optional[models.Container]:
+    """Gets a container by its ID."""
+    return db.query(models.Container).filter(models.Container.containerId == container_id).first()
+
+def get_all_containers(db: Session, skip: int = 0, limit: int = 100) -> List[models.Container]:
+    """Gets all containers."""
+    return db.query(models.Container).offset(skip).limit(limit).all()
+
+def create_container(db: Session, container: schemas.ContainerCreate) -> models.Container:
+    """Creates a new container."""
+    db_container = models.Container(**container.model_dump())
+    db.add(db_container)
+    try:
+        db.commit()
+        db.refresh(db_container)
+        return db_container
+    except IntegrityError:
+        db.rollback()
+        raise ValueError(f"Container with ID '{container.containerId}' may already exist.")
+
+
+# --- Placed Item CRUD ---
+
+def add_placed_item(db: Session, item_placement: schemas.PlacedItemCreate) -> models.PlacedItem:
+    """Adds a record of an item being placed in a container."""
+    # Check if the item definition exists
+    item_def = get_item_definition(db, item_placement.itemId)
+    if not item_def:
+        raise ValueError(f"Cannot place item: Item definition with ID '{item_placement.itemId}' not found.")
+
+    # Check if container exists
+    container = get_container_by_id(db, item_placement.containerId)
+    if not container:
+         raise ValueError(f"Cannot place item: Container with ID '{item_placement.containerId}' not found.")
+
+    # Create the placed item record
+    # Ensure PlacedItem model can be created from PlacedItemCreate schema + item_def details
+    db_placed_item = models.PlacedItem(
+        itemId=item_placement.itemId,
+        name=item_def.name, # Get name from definition
+        containerId=item_placement.containerId,
+        startW=item_placement.startW,
+        startD=item_placement.startD,
+        startH=item_placement.startH,
+        width=item_placement.width,
+        depth=item_placement.depth,
+        height=item_placement.height,
+        priority=item_def.priority, # Get priority from definition
+        # Add other relevant fields from item_def if needed in PlacedItem model
+    )
+    db.add(db_placed_item)
+    try:
+        db.commit()
+        db.refresh(db_placed_item)
+        return db_placed_item
+    except IntegrityError: # e.g., if you have a unique constraint on (itemId, containerId)
+        db.rollback()
+        raise ValueError(f"Item '{item_placement.itemId}' might already be placed at this exact location or have constraint conflict.")
+
+def get_placed_item_by_id(db: Session, item_id: str, container_id: Optional[str] = None) -> Optional[models.PlacedItem]:
+    """
+    Gets a specific placed item instance by its unique item ID.
+    Optionally filter by container ID if multiple placements of the same item ID are possible (unlikely based on schema).
+    """
+    query = db.query(models.PlacedItem).filter(models.PlacedItem.itemId == item_id)
+    if container_id:
+         query = query.filter(models.PlacedItem.containerId == container_id)
+    return query.first() # Assumes itemId is unique across all placements
+
+def get_placed_items_by_name(db: Session, item_name: str) -> List[models.PlacedItem]:
+    """Gets all placed item instances matching a given name."""
+    # Assumes PlacedItem model has a 'name' field populated from ItemDefinition
+    return db.query(models.PlacedItem).filter(models.PlacedItem.name == item_name).all()
+
+def get_items_in_container(db: Session, container_id: str) -> List[models.PlacedItem]:
+    """Gets all items currently placed within a specific container."""
+    return db.query(models.PlacedItem).filter(models.PlacedItem.containerId == container_id).all()
+
+def get_all_placed_items(db: Session) -> List[models.PlacedItem]:
+    """Gets all items currently placed in any container."""
+    return db.query(models.PlacedItem).all()
+
+def remove_placed_item(db: Session, item_id: str, container_id: str) -> bool:
+    """Removes a placed item record from a container."""
+    db_item = get_placed_item_by_id(db, item_id=item_id, container_id=container_id)
+    if db_item:
+        db.delete(db_item)
         db.commit()
         return True
-    except sqlite3.IntegrityError:
-        return False  # Duplicate itemId
-    finally:
-        cursor.close()
+    return False # Item not found in that container
 
-def get_item(item_id: str, db: sqlite3.Connection = Depends(get_db)) -> Optional[Dict[str, Any]]:
-    """Retrieve an item by its ID."""
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM items WHERE itemId = ?", (item_id,))
-    row = cursor.fetchone()
-    cursor.close()
-    if row:
-        return dict(row)
-    return None
-
-def update_item(item_id: str, updates: Dict[str, Any], db: sqlite3.Connection = Depends(get_db)) -> bool:
-    """Update an existing item's fields."""
-    cursor = db.cursor()
-    set_clause = ", ".join(f"{key} = ?" for key in updates.keys())
-    values = list(updates.values()) + [item_id]
-    cursor.execute(f"UPDATE items SET {set_clause} WHERE itemId = ?", values)
-    affected = cursor.rowcount > 0
-    db.commit()
-    cursor.close()
-    return affected
-
-def delete_item(item_id: str, db: sqlite3.Connection = Depends(get_db)) -> bool:
-    """Delete an item by its ID."""
-    cursor = db.cursor()
-    cursor.execute("DELETE FROM items WHERE itemId = ?", (item_id,))
-    affected = cursor.rowcount > 0
-    db.commit()
-    cursor.close()
-    return affected
-
-# --- Container CRUD Operations ---
-def create_container(container: Container, db: sqlite3.Connection = Depends(get_db)) -> bool:
-    """Create a new container in the database."""
-    cursor = db.cursor()
-    try:
-        cursor.execute("""
-            INSERT INTO containers (containerId, zone, width, depth, height)
-            VALUES (?, ?, ?, ?, ?)
-        """, (container.containerId, container.zone, container.width, container.depth, container.height))
+def update_placed_item_position(
+    db: Session,
+    item_id: str,
+    container_id: str,
+    new_pos: Tuple[float, float, float],
+    new_dims: Optional[Tuple[float, float, float]] = None # If rotation changes dims
+) -> Optional[models.PlacedItem]:
+    """Updates the position (and optionally dimensions) of a placed item."""
+    db_item = get_placed_item_by_id(db, item_id=item_id, container_id=container_id)
+    if db_item:
+        db_item.startW, db_item.startD, db_item.startH = new_pos
+        if new_dims:
+            db_item.width, db_item.depth, db_item.height = new_dims
         db.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False  # Duplicate containerId
-    finally:
-        cursor.close()
+        db.refresh(db_item)
+        return db_item
+    return None # Item not found
 
-def get_container(container_id: str, db: sqlite3.Connection = Depends(get_db)) -> Optional[Dict[str, Any]]:
-    """Retrieve a container by its ID."""
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM containers WHERE containerId = ?", (container_id,))
-    row = cursor.fetchone()
-    cursor.close()
-    if row:
-        return dict(row)
-    return None
+# --- Log CRUD ---
 
-def get_all_containers(db: sqlite3.Connection = Depends(get_db)) -> List[Dict[str, Any]]:
-    """Retrieve all containers."""
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM containers")
-    rows = cursor.fetchall()
-    cursor.close()
-    return [dict(row) for row in rows]
-
-# --- Log CRUD Operations ---
-def create_log(log: Log, db: sqlite3.Connection = Depends(get_db)) -> bool:
-    """Create a new log entry in the database."""
-    cursor = db.cursor()
-    cursor.execute("""
-        INSERT INTO logs (timestamp, userId, actionType, itemId, details)
-        VALUES (?, ?, ?, ?, ?)
-    """, (log.timestamp, log.userId, log.actionType, log.itemId, log.details))
+def create_log(db: Session, log: schemas.LogCreate) -> models.Log:
+    """Creates a log entry."""
+    # Example assumes Log model takes userId, action, details, timestamp
+    # Adjust field names as per your models.Log definition
+    db_log = models.Log(
+        userId=log.userId,
+        action=log.action,
+        details=log.details
+        # timestamp might be handled automatically by the database model default
+    )
+    db.add(db_log)
     db.commit()
-    cursor.close()
-    return True
+    db.refresh(db_log)
+    return db_log
 
-def get_logs(item_id: Optional[str] = None, user_id: Optional[str] = None, db: sqlite3.Connection = Depends(get_db)) -> List[Dict[str, Any]]:
-    """Retrieve logs, optionally filtered by itemId or userId."""
-    cursor = db.cursor()
-    query = "SELECT * FROM logs"
-    params = []
-    if item_id:
-        query += " WHERE itemId = ?"
-        params.append(item_id)
-    elif user_id:
-        query += " WHERE userId = ?"
-        params.append(user_id)
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    cursor.close()
-    return [dict(row) for row in rows]
+def get_logs(db: Session, skip: int = 0, limit: int = 100) -> List[models.Log]:
+    """Retrieves log entries, ordered by timestamp descending."""
+    # Assumes Log model has a 'timestamp' field
+    return db.query(models.Log).order_by(models.Log.timestamp.desc()).offset(skip).limit(limit).all()
