@@ -21,7 +21,7 @@ To set up and run the Space Station Cargo Management System API locally, follow 
 
 
 ```bash
-git clone geniusalert/space-hatkhton
+git clone https://github.com/geniusalert/space-hatkhton.git
 ```
     
 2. Build the Docker Container:
